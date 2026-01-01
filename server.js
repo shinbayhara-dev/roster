@@ -45,6 +45,15 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Ping endpoint for keep-alive cron jobs
+app.get('/api/ping', (req, res) => {
+    res.json({
+        success: true,
+        message: 'PONG',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);

@@ -53,3 +53,16 @@ Aplikasi Anda sekarang aktif di URL yang diberikan Vercel (misal: `https://cssd-
 Admin bisa login menggunakan:
 - **NIP**: ADMIN001
 - **Password**: admin123
+
+## 5. Setting Up Cron Job (Keep-Alive)
+Karena Vercel menggunakan *Serverless Functions*, aplikasi Anda bisa "tertidur" jika tidak ada aktivitas. Untuk menjaganya tetap responsif dan database tidak lambat saat dibuka pertama kali, kita gunakan **cron-job.org**.
+
+1. Buka [cron-job.org](https://cron-job.org) dan buat akun gratis.
+2. Klik tombol **"Create Cronjob"**.
+3. **Title**: `CSSD Roster Pro Keep-Alive`
+4. **URL**: `https://nama-proyek-anda.vercel.app/api/ping`
+5. **Execution schedule**: Pilih **Every 5 minutes** (atau 10 menit).
+6. **Request method**: Pilih **GET**.
+7. Klik **"Create"**.
+
+Selesai! Sekarang website `cron-job.org` akan otomatis memanggil aplikasi Anda setiap beberapa menit agar Vercel tetap "hangat" dan siap melayani user kapan saja.

@@ -26,10 +26,24 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
   onClose,
   isNew = false
 }) => {
+  console.log('AssignmentPanel Render:', { initialDate, isNew });
   const [date, setDate] = useState(initialDate);
   const [selectedShift, setSelectedShift] = useState<string | null>(initialShift || null);
   const [selectedTask, setSelectedTask] = useState<string | null>(initialTask || null);
   const [search, setSearch] = useState('');
+
+  // Sync state with props when they change (e.g. opening modal for different cell)
+  React.useEffect(() => {
+    setDate(initialDate);
+  }, [initialDate]);
+
+  React.useEffect(() => {
+    setSelectedShift(initialShift || null);
+  }, [initialShift]);
+
+  React.useEffect(() => {
+    setSelectedTask(initialTask || null);
+  }, [initialTask]);
 
   const primaryShifts = useMemo(() =>
     Object.values(SHIFT_DEFINITIONS).filter(d => d.category === 'primary' || d.category === 'leave'),

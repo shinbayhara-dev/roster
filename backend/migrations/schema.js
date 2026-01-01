@@ -74,7 +74,7 @@ export async function runMigrations() {
       CREATE TABLE IF NOT EXISTS schedules (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        unit_id INTEGER NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+        unit_id INTEGER REFERENCES units(id) ON DELETE CASCADE,
         shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL,
         date DATE NOT NULL,
         status VARCHAR(20) DEFAULT 'scheduled',

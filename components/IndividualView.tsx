@@ -139,54 +139,91 @@ export const IndividualView: React.FC<IndividualViewProps> = ({ selectedEmployee
             </div>
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-px bg-gray-100">
-            {daysArray.map(day => {
-              const weekend = isWeekend(roster.year, roster.month, day);
-              const holidayName = getHolidayName(roster.year, roster.month, day);
-              const isRed = weekend || !!holidayName;
-              const dayName = getDayName(roster.year, roster.month, day);
-              const record = employeeRecords.find(r => parseInt(r.date.split('-')[2]) === day);
+          <div className="grid grid-cols-7 gap-px bg-gray-100 border-b border-gray-100">
+            {['SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB', 'MIN'].map(day => (
+              <div key={day} className="bg-white py-3 text-center text-[9px] font-black text-gray-400 tracking-widest uppercase">
+                {day}
+              </div>
+            ))}
+          </div>
 
-              return (
-                <div
-                  key={day}
-                  title={holidayName || undefined}
-                  className={`bg-white p-3 lg:p-5 h-28 lg:h-40 flex flex-col justify-between transition-all relative group ${isRed ? 'bg-red-50/10' : ''}`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex flex-col">
-                      <span className={`text-[8px] lg:text-[10px] font-black uppercase tracking-widest ${isRed ? 'text-red-400' : 'text-gray-300'}`}>
-                        {dayName}
-                      </span>
-                      {holidayName && (
-                        <span className="text-[8px] font-bold text-red-500 leading-tight mt-1 max-w-[80px] break-words line-clamp-2">
-                          {holidayName}
+          <div className="grid grid-cols-7 gap-px bg-gray-100">
+            {/* Generate calendar cells with padding for correct weekday start */}
+            {(() => {
+              // Calculate padding for the first day of the month
+              // Note: getDay() returns 0 for Sunday, 1 for Monday, etc.
+              // We want Monday (1) to be col 0.
+              const firstDayOfMonth = new Date(roster.year, roster.month, 1).getDay(); // Sun=0, Mon=1, ... Sat=6
+              // Convert JS Day (Sun=0) to ISO Day (Mon=1, Sun=7) for easier calculation with Monday start
+              // JS: 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+              // Target: 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+              const startOffset = (firstDayOfMonth === 0 ? 7 : firstDayOfMonth) - 1;
+
+              const cells = [];
+              // Add empty padding cells
+              for (let i = 0; i < startOffset; i++) {
+                cells.push(<div key={`pad-${i}`} className="bg-white/50 h-32 lg:h-40" />);
+              }
+
+              // Add day cells
+              daysArray.forEach(day => {
+                const weekend = isWeekend(roster.year, roster.month, day);
+                const holidayName = getHolidayName(roster.year, roster.month, day);
+                const isRed = weekend || !!holidayName;
+                const dayName = getDayName(roster.year, roster.month, day); // Ensure this matches UI locale if shown
+                const record = employeeRecords.find(r => parseInt(r.date.split('-')[2]) === day);
+
+                cells.push(
+                  <div
+                    key={day}
+                    title={holidayName || undefined}
+                    className={`bg-white p-3 lg:p-5 h-32 lg:h-40 flex flex-col justify-between transition-all relative group ${isRed ? 'bg-red-50/10' : ''}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col">
+                        <span className={`text-[8px] lg:text-[10px] font-black uppercase tracking-widest ${isRed ? 'text-red-400' : 'text-gray-300'}`}>
+                          {dayName}
                         </span>
+                        {holidayName && (
+                          <span className="text-[8px] font-bold text-red-500 leading-tight mt-1 max-w-[80px] break-words line-clamp-2">
+                            {holidayName}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-xl lg:text-3xl font-black leading-none ${isRed ? 'text-red-500 scale-110' : 'text-gray-900 group-hover:text-indigo-600 transition-colors'}`}>
+                        {day}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-1 lg:gap-2">
+                      {record ? (
+                        <>
+                          <ShiftBadge code={record.shiftCode} className="w-8 h-8 lg:w-12 lg:h-12 text-[10px] lg:text-xs shadow-md shadow-indigo-50 rounded-lg lg:rounded-xl" />
+                          {record.taskCode && (
+                            <div className="text-[7px] lg:text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 lg:px-3 py-1 rounded lg:rounded-lg border border-indigo-100 whitespace-nowrap shadow-sm truncate max-w-full">
+                              {SHIFT_DEFINITIONS[record.taskCode]?.label.substring(0, 15)}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="w-8 h-8 lg:w-12 lg:h-12 border-2 border-dashed border-gray-100 rounded-lg lg:rounded-2xl opacity-50" />
                       )}
                     </div>
-                    <span className={`text-sm lg:text-xl font-black leading-none ${isRed ? 'text-red-500' : 'text-gray-900 group-hover:text-indigo-600 transition-colors'}`}>
-                      {day}
-                    </span>
                   </div>
+                );
+              });
 
-                  <div className="flex flex-col items-center gap-1 lg:gap-2">
-                    {record ? (
-                      <>
-                        <ShiftBadge code={record.shiftCode} className="w-7 h-7 lg:w-10 lg:h-10 text-[9px] lg:text-xs shadow-md shadow-indigo-50 rounded-lg lg:rounded-xl" />
-                        {record.taskCode && (
-                          <div className="text-[7px] lg:text-[8px] font-black text-indigo-600 bg-indigo-50 px-1 lg:px-2 py-0.5 lg:py-1 rounded lg:rounded-lg border border-indigo-100 whitespace-nowrap shadow-sm truncate max-w-full">
-                            {SHIFT_DEFINITIONS[record.taskCode]?.label.substring(0, 10)}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="w-7 h-7 lg:w-10 lg:h-10 border-2 border-dashed border-gray-100 rounded-lg lg:rounded-2xl" />
-                    )}
-                  </div>
-                  {record && <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-indigo-500 lg:opacity-0 group-hover:opacity-100 transition-opacity" />}
-                </div>
-              );
-            })}
+              // Add trailing padding if needed to complete the grid (optional but looks nicer)
+              const totalCells = cells.length;
+              const remaining = 7 - (totalCells % 7);
+              if (remaining < 7) {
+                for (let i = 0; i < remaining; i++) {
+                  cells.push(<div key={`trail-${i}`} className="bg-white/30 h-32 lg:h-40" />);
+                }
+              }
+
+              return cells;
+            })()}
           </div>
         </div>
       </div>

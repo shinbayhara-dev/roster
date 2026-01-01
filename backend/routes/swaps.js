@@ -2,7 +2,7 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import pool, { query } from '../config/database.js';
-import { authenticateToken, authorize } from '../middleware/auth.js';
+import { authenticateToken, authorizeRoles } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -99,7 +99,7 @@ router.post('/', authenticateToken, [
 });
 
 // Approve Exchange (Admin/Supervisor)
-router.put('/:id/approve', authenticateToken, authorize(['admin', 'supervisor']), async (req, res) => {
+router.put('/:id/approve', authenticateToken, authorizeRoles('admin', 'supervisor'), async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -222,7 +222,7 @@ router.put('/:id/approve', authenticateToken, authorize(['admin', 'supervisor'])
 });
 
 // Reject Exchange
-router.put('/:id/reject', authenticateToken, authorize(['admin', 'supervisor']), async (req, res) => {
+router.put('/:id/reject', authenticateToken, authorizeRoles('admin', 'supervisor'), async (req, res) => {
     try {
         const swapId = req.params.id;
         const approverId = req.user.id;

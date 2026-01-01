@@ -9,9 +9,9 @@ const router = express.Router();
  * @desc    Get all users
  * @access  Private (Admin/Supervisor)
  */
+// allow all authenticated users to view user list for roster
 router.get('/', [
-    authenticateToken,
-    authorizeRoles('admin', 'supervisor')
+    authenticateToken
 ], async (req, res) => {
     try {
         const { role, isActive } = req.query;

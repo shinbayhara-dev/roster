@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import { Calendar, ShieldAlert } from 'lucide-react';
 
 interface LoginFormProps {
-    onLogin: (email: string, password: string) => Promise<void>;
+    onLogin: (nip: string, password: string) => Promise<void>;
     isLoading: boolean;
     error: string | null;
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, isLoading, error }) => {
-    const [email, setEmail] = useState('admin@cssd.com');
-    const [password, setPassword] = useState('admin123');
+    const [nip, setNip] = useState('');
+    const [password, setPassword] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onLogin(email, password);
+        onLogin(nip, password);
     };
 
     return (
@@ -32,13 +32,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, isLoading, error 
                 <div className="bg-white py-8 px-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sm:rounded-2xl sm:px-10 border border-gray-100">
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
-                            <label className="block text-sm font-bold text-gray-700">Alamat Email</label>
+                            <label className="block text-sm font-bold text-gray-700">Nomor Induk Pegawai (NIP)</label>
                             <div className="mt-1">
                                 <input
-                                    type="email"
+                                    type="text"
                                     required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    value={nip}
+                                    onChange={(e) => setNip(e.target.value)}
+                                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Mohon isi NIP anda')}
+                                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
+                                    placeholder="Masukkan NIP Anda"
                                     className="block w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm font-medium transition-colors"
                                 />
                             </div>
@@ -52,6 +55,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, isLoading, error 
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
+                                    onInvalid={(e) => (e.target as HTMLInputElement).setCustomValidity('Mohon isi kata sandi')}
+                                    onInput={(e) => (e.target as HTMLInputElement).setCustomValidity('')}
                                     className="block w-full appearance-none rounded-xl border border-gray-200 px-3 py-2.5 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm font-medium transition-colors"
                                 />
                             </div>
@@ -79,11 +84,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, isLoading, error 
                                 <div className="w-full border-t border-gray-200" />
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="bg-white px-2 text-gray-400 text-xs font-bold uppercase">Default Credential</span>
+                                <span className="bg-white px-2 text-gray-400 text-xs font-bold uppercase">Buatan Lokal</span>
                             </div>
                         </div>
                         <div className="mt-4 text-center text-xs text-gray-500">
-                            Email: admin@cssd.com <br /> Pass: admin123
+                            made <br /> in Indonesia
                         </div>
                     </div>
                 </div>

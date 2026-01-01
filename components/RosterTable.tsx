@@ -14,6 +14,25 @@ interface RosterTableProps {
     onEmployeeClick?: (employeeId: string) => void;
     canEdit: boolean;
     currentUser: User | null;
+    masterShifts: any[];
+    masterUnits: any[];
+}
+
+const getContrastYIQ = (hexcolor: string) => {
+    if (!hexcolor) return '#000000';
+    try {
+        hexcolor = hexcolor.replace("#", "");
+        if (hexcolor.length === 3) {
+            hexcolor = hexcolor.split('').map(char => char + char).join('');
+        }
+        var r = parseInt(hexcolor.substr(0, 2), 16);
+        var g = parseInt(hexcolor.substr(2, 2), 16);
+        var b = parseInt(hexcolor.substr(4, 2), 16);
+        var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        return (yiq >= 128) ? '#111827' : '#FFFFFF'; // gray-900 vs white
+    } catch (e) {
+        return '#000000';
+    }
 }
 
 export const RosterTable: React.FC<RosterTableProps> = ({
@@ -25,7 +44,9 @@ export const RosterTable: React.FC<RosterTableProps> = ({
     onCellClick,
     onEmployeeClick,
     canEdit,
-    currentUser
+    currentUser,
+    masterShifts = [],
+    masterUnits = []
 }) => {
     if (employees.length === 0) {
         return (
@@ -48,11 +69,13 @@ export const RosterTable: React.FC<RosterTableProps> = ({
                                 const weekend = isWeekend(currentYear, currentMonth, day);
                                 const holidayName = getHolidayName(currentYear, currentMonth, day);
                                 const isRed = weekend || !!holidayName;
+                                const date = new Date(currentYear, currentMonth, day);
+                                const isMonday = date.getDay() === 1;
 
                                 return (
                                     <th
                                         key={day}
-                                        className={`w-8 border border-gray-300 text-[10px] font-bold text-center p-0.5 ${isRed ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-800'}`}
+                                        className={`w-8 border border-gray-300 ${isMonday ? 'border-l-indigo-600 border-l-2' : ''} text-[10px] font-bold text-center p-0.5 ${isRed ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-800'}`}
                                         title={holidayName || undefined}
                                     >
                                         <div className="flex flex-col items-center leading-tight">
@@ -79,24 +102,48 @@ export const RosterTable: React.FC<RosterTableProps> = ({
                                     const dateKey = generateDateKey(currentYear, currentMonth, day);
                                     const record = getRecordForCell(emp.employeeId, dateKey);
                                     const code = record?.taskCode || record?.shiftCode || '';
-                                    const def = SHIFT_DEFINITIONS[code] || SHIFT_DEFINITIONS[record?.shiftCode || ''] || { color: 'bg-white', textColor: 'text-gray-900', code: code };
-                                    const bgColor = def.color;
-                                    const textColor = def.textColor;
+
+                                    // Default fallback
+                                    let def = SHIFT_DEFINITIONS[code] || SHIFT_DEFINITIONS[record?.shiftCode || ''] || { color: 'bg-white', textColor: 'text-gray-900', code: code };
+
+                                    // Try dynamic lookup
+                                    let dynamicBgStr = '';
+                                    let dynamicTextStr = '';
+
+                                    const dynamicUnit = masterUnits.find(u => u.code === code);
+                                    const dynamicShift = masterShifts.find(s => s.code === code);
+
+                                    if (dynamicUnit?.color) {
+                                        dynamicBgStr = dynamicUnit.color;
+                                        dynamicTextStr = getContrastYIQ(dynamicBgStr);
+                                    } else if (dynamicShift?.color) {
+                                        dynamicBgStr = dynamicShift.color;
+                                        dynamicTextStr = getContrastYIQ(dynamicBgStr);
+                                    }
+
+                                    const bgColorClass = dynamicBgStr ? '' : def.color;
+                                    const textColorClass = dynamicBgStr ? '' : def.textColor;
 
                                     const isMe = currentUser?.nip === emp.employeeId;
-                                    // User can click if Admin/Sup (canEdit) OR if it is their own cell AND it has a record (to swap)
-                                    // Allowing clicking empty cells for Staff doesn't make sense unless they can "Self-Schedule" (which logic doesn't support yet).
-                                    // Let's assume they can only click if record exists (to request swap).
                                     const isClickable = canEdit || (isMe && !!record);
+
+                                    const date = new Date(currentYear, currentMonth, day);
+                                    const isMonday = date.getDay() === 1;
 
                                     return (
                                         <td
                                             key={day}
-                                            className={`border border-gray-300 p-0 relative h-8 ${isClickable ? 'cursor-pointer hover:opacity-80' : ''}`}
-                                            onClick={() => isClickable && onCellClick && onCellClick(emp.employeeId, dateKey, day, emp)}
+                                            className={`border border-gray-300 ${isMonday ? 'border-l-indigo-600 border-l-2' : ''} p-0 relative h-8 ${isClickable ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                            onClick={() => {
+                                                console.log('RosterTable Cell Click:', { empId: emp.employeeId, dateKey, day });
+                                                isClickable && onCellClick && onCellClick(emp.employeeId, dateKey, day, emp);
+                                            }}
                                         >
                                             {record && (
-                                                <div className={`w-full h-full flex items-center justify-center font-bold text-[10px] ${bgColor} ${textColor}`}>
+                                                <div
+                                                    className={`w-full h-full flex items-center justify-center font-bold text-[10px] ${bgColorClass} ${textColorClass}`}
+                                                    style={dynamicBgStr ? { backgroundColor: dynamicBgStr, color: dynamicTextStr } : {}}
+                                                >
                                                     {def.code || code}
                                                 </div>
                                             )}

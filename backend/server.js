@@ -19,7 +19,10 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://localhost:5174'],
+    origin: [
+        'http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://localhost:5174',
+        'http://192.168.1.1:5173', 'http://192.168.1.1:5174', 'capacitor://localhost', 'http://localhost'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -50,12 +53,27 @@ app.use('/api/shifts', shiftsRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/swaps', swapsRoutes);
 
-// 404 handler
-app.use((req, res) => {
+// Serve static files from frontend build
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve static files from the 'dist' directory (one level up)
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Handle API 404s specifically
+app.use('/api/*', (req, res) => {
     res.status(404).json({
         success: false,
-        message: 'Endpoint tidak ditemukan'
+        message: 'Endpoint API tidak ditemukan'
     });
+});
+
+// For any other route (SPA client-side routing), serve index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 // Error handler

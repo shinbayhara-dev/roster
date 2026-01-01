@@ -33,7 +33,7 @@ const App = () => {
   const {
     employees, roster, currentMonth, currentYear,
     daysArray, navigateMonth, updateShift, saveSchedule, deleteScheduleRecord, getRecordForCell,
-    isLoading: dataLoading, refreshData, canEdit, isOffline
+    isLoading: dataLoading, refreshData, canEdit, isOffline, masterUnits, masterShifts
   } = useRoster(isAuthenticated, currentUser);
 
   // --- UI State ---
@@ -247,11 +247,13 @@ const App = () => {
                   getRecordForCell={getRecordForCell}
                   canEdit={!!canEdit}
                   currentUser={currentUser}
+                  masterShifts={masterShifts}
+                  masterUnits={masterUnits}
                   onCellClick={(empId, dateKey, day, employee) => {
                     if (canEdit) {
-                      setEditingCell({ empId, dateKey, day, employee, mode: 'edit' });
+                      setEditingCell({ empId, date: dateKey, day, employee, mode: 'edit' });
                     } else if (currentUser && currentUser.nip === empId) {
-                      setEditingCell({ empId, dateKey, day, employee, mode: 'swap' });
+                      setEditingCell({ empId, date: dateKey, day, employee, mode: 'swap' });
                     }
                   }}
                   onEmployeeClick={(empId) => { setSelectedIndividualId(empId); setActiveView('individual'); }}
@@ -279,7 +281,7 @@ const App = () => {
               </div>
 
               <div className="mt-6">
-                <Legend />
+                <Legend masterShifts={masterShifts} masterUnits={masterUnits} />
               </div>
             </div>
           )}
@@ -298,6 +300,7 @@ const App = () => {
       <Modal isOpen={!!editingCell} onClose={() => setEditingCell(null)}>
         {editingCell && editingCell.mode === 'edit' && (
           <AssignmentPanel
+            key={`${editingCell.empId}-${editingCell.date}`} // FORCE RE-MOUNT ON CHANGE
             employee={editingCell.employee}
             initialDate={editingCell.date}
             initialShift={getRecordForCell(editingCell.empId, editingCell.date)?.shiftCode}

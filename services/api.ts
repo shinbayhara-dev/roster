@@ -32,19 +32,31 @@ const authFetch = async (endpoint: string, options: RequestInit = {}) => {
 
 export const api = {
     // Auth
-    login: async (email: string, password: string): Promise<LoginResponse> => {
+    login: async (nip: string, password: string): Promise<LoginResponse> => {
         const response = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ nip, password }),
         });
 
+        const text = await response.text();
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Login failed');
+            let msg = 'Login failed';
+            try {
+                const json = JSON.parse(text);
+                msg = json.message || msg;
+            } catch {
+                msg = text || response.statusText || 'Server Error';
+            }
+            throw new Error(msg);
         }
 
-        return response.json();
+        try {
+            return JSON.parse(text);
+        } catch {
+            throw new Error("Invalid server response (empty or not JSON)");
+        }
     },
 
     getCurrentUser: async (): Promise<{ data: User }> => {
@@ -109,7 +121,7 @@ export const api = {
             scheduleId: s.id,
             employeeId: s.user?.nip || '', // Use NIP as ID for frontend mapping
             date: typeof s.date === 'string' ? s.date.substring(0, 10) : new Date(s.date).toISOString().substring(0, 10),
-            shiftCode: s.shift?.code || s.status === 'leave' ? ShiftType.CUTI : ShiftType.LIBUR, // Fallback logic
+            shiftCode: s.shift?.code || (s.status === 'leave' ? ShiftType.CUTI : ShiftType.LIBUR), // Fallback logic
             taskCode: s.unit?.code // Map unit to taskCode
         }));
 

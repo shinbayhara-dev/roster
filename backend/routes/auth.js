@@ -5,7 +5,21 @@ import { body, validationResult } from 'express-validator';
 import { query } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 
+import { rateLimit } from 'express-rate-limit';
+
 const router = express.Router();
+
+// Rate limiter khusus untuk login: Maksimal 5 percobaan dalam 15 menit
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 menit
+    max: 5, // Batas 5 percobaan
+    message: {
+        success: false,
+        message: 'Terlalu banyak percobaan login gagal. Demi keamanan, silakan tunggu 15 menit sebelum mencoba lagi.'
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 
 /**
  * @route   POST /api/auth/register
@@ -67,8 +81,8 @@ router.post('/register', [
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', [
-    body('email').isEmail().withMessage('Email tidak valid'),
+router.post('/login', loginLimiter, [
+    body('nip').notEmpty().withMessage('NIP wajib diisi'),
     body('password').notEmpty().withMessage('Password wajib diisi')
 ], async (req, res) => {
     try {
@@ -77,18 +91,18 @@ router.post('/login', [
             return res.status(400).json({ success: false, errors: errors.array() });
         }
 
-        const { email, password } = req.body;
+        const { nip, password } = req.body;
 
-        // Cari user berdasarkan email
+        // Cari user berdasarkan NIP
         const result = await query(
-            'SELECT * FROM users WHERE email = $1 AND is_active = true',
-            [email]
+            'SELECT * FROM users WHERE nip = $1 AND is_active = true',
+            [nip]
         );
 
         if (result.rows.length === 0) {
             return res.status(401).json({
                 success: false,
-                message: 'Email atau password salah'
+                message: 'NIP atau password salah'
             });
         }
 
@@ -99,7 +113,7 @@ router.post('/login', [
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,
-                message: 'Email atau password salah'
+                message: 'NIP atau password salah'
             });
         }
 

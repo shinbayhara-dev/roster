@@ -7,9 +7,10 @@ interface ShiftBadgeProps {
   code: ShiftType;
   onClick?: () => void;
   className?: string;
+  customStyle?: React.CSSProperties;
 }
 
-export const ShiftBadge: React.FC<ShiftBadgeProps> = ({ code, onClick, className = '' }) => {
+export const ShiftBadge: React.FC<ShiftBadgeProps> = ({ code, onClick, className = '', customStyle }) => {
   const definition = SHIFT_DEFINITIONS[code] || (code === 'OFF' ? SHIFT_DEFINITIONS['L'] : null);
 
   if (!definition) {
@@ -19,6 +20,7 @@ export const ShiftBadge: React.FC<ShiftBadgeProps> = ({ code, onClick, className
         onClick={onClick}
         className={`w-8 h-8 flex items-center justify-center text-[10px] font-bold rounded border border-gray-200 bg-gray-100 text-gray-500 ${className}`}
         title={code}
+        style={customStyle}
       >
         {code}
       </div>
@@ -34,6 +36,7 @@ export const ShiftBadge: React.FC<ShiftBadgeProps> = ({ code, onClick, className
         ${definition.color} ${definition.textColor} ${className}
       `}
       title={definition.label}
+      style={customStyle}
     >
       {code}
     </div>

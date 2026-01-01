@@ -40,7 +40,7 @@ router.get('/', authenticateToken, async (req, res) => {
         ) as shift
       FROM schedules s
       JOIN users u ON s.user_id = u.id
-      JOIN units un ON s.unit_id = un.id
+      LEFT JOIN units un ON s.unit_id = un.id
       LEFT JOIN shifts sh ON s.shift_id = sh.id
       WHERE 1=1
     `;
@@ -119,7 +119,7 @@ router.get('/my-schedule', authenticateToken, async (req, res) => {
           'color', sh.color
         ) as shift
       FROM schedules s
-      JOIN units un ON s.unit_id = un.id
+      LEFT JOIN units un ON s.unit_id = un.id
       LEFT JOIN shifts sh ON s.shift_id = sh.id
       WHERE s.user_id = $1
     `;

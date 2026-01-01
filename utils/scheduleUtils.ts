@@ -16,5 +16,7 @@ export const isWeekend = (year: number, month: number, day: number) => {
 };
 
 export const getDayName = (year: number, month: number, day: number) => {
-  return new Date(year, month, day).toLocaleDateString('id-ID', { weekday: 'short' });
+  const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+  const date = new Date(year, month, day);
+  return DAYS[date.getDay()];
 };

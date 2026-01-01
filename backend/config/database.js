@@ -12,6 +12,7 @@ const pool = new Pool({
   database: process.env.DB_NAME || 'cssd_roster',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
@@ -46,17 +47,17 @@ export const getClient = async () => {
   const client = await pool.connect();
   const query = client.query.bind(client);
   const release = client.release.bind(client);
-  
+
   // Set timeout untuk transaksi
   const timeout = setTimeout(() => {
     console.error('A client has been checked out for more than 5 seconds!');
   }, 5000);
-  
+
   client.release = () => {
     clearTimeout(timeout);
     client.release();
   };
-  
+
   return { query, release };
 };
 

@@ -24,8 +24,8 @@ pool.on('connect', () => {
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Error koneksi database:', err);
-  process.exit(-1);
+  console.error('❌ Error koneksi database (Pool):', err.message);
+  // Jangan gunakan process.exit di serverless
 });
 
 // Helper function untuk query

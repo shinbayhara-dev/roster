@@ -17,6 +17,15 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Debugging Environment Variables di Vercel
+if (process.env.VERCEL === '1') {
+    console.log('🌐 Running on Vercel');
+    console.log('📡 DB_HOST:', process.env.DB_HOST ? 'Present' : 'MISSING');
+    console.log('📡 DB_USER:', process.env.DB_USER ? 'Present' : 'MISSING');
+    console.log('📡 DB_NAME:', process.env.DB_NAME ? 'Present' : 'MISSING');
+    console.log('📡 DB_SSL:', process.env.DB_SSL ? 'Present' : 'MISSING');
+}
+
 // Middleware
 app.use(cors({
     origin: [

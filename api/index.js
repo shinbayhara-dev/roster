@@ -1,5 +1,5 @@
 import express from 'express';
-import app from '../backend/server.js';
+import app from '../server.js';
 
 console.log('🚀 Serverless function starting...');
 

@@ -60,8 +60,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve static files from the 'dist' directory (one level up)
-app.use(express.static(path.join(__dirname, '../dist')));
+// Serve static files from the 'dist' directory (now in root)
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Handle API 404s specifically
 app.use('/api/*', (req, res) => {
@@ -73,7 +73,7 @@ app.use('/api/*', (req, res) => {
 
 // For any other route (SPA client-side routing), serve index.html
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
+    res.sendFile(path.join(__dirname, 'dist/index.html'));
 });
 
 // Error handler
@@ -87,16 +87,18 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log('='.repeat(50));
-    console.log('🏥 CSSD Roster Pro - Backend API');
-    console.log('='.repeat(50));
-    console.log(`🚀 Server berjalan di: http://localhost:${PORT}`);
-    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🗄️  Database: ${process.env.DB_NAME}`);
-    console.log('='.repeat(50));
-});
+// Start server only if not on Vercel
+if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+        console.log('='.repeat(50));
+        console.log('🏥 CSSD Roster Pro - Backend API');
+        console.log('='.repeat(50));
+        console.log(`🚀 Server berjalan di: http://localhost:${PORT}`);
+        console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`🗄️  Database: ${process.env.DB_NAME}`);
+        console.log('='.repeat(50));
+    });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {

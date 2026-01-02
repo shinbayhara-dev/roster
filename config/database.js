@@ -6,13 +6,16 @@ dotenv.config();
 const { Pool } = pg;
 
 // Konfigurasi koneksi database PostgreSQL
-// Konfigurasi koneksi database PostgreSQL
-const poolConfig = process.env.DATABASE_URL
+let connectionString = process.env.DATABASE_URL;
+if (connectionString) {
+  // Strip ?sslmode=require or &sslmode=require to control SSL manually
+  connectionString = connectionString.replace('?sslmode=require', '').replace('&sslmode=require', '');
+}
+
+const poolConfig = connectionString
   ? {
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DB_SSL === 'true' || process.env.DATABASE_URL.includes('sslmode=require')
-      ? { rejectUnauthorized: false }
-      : false,
+    connectionString,
+    ssl: { rejectUnauthorized: false }
   }
   : {
     host: process.env.DB_HOST || 'localhost',

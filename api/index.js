@@ -117,7 +117,7 @@ if (process.env.VERCEL !== '1') {
         console.log('='.repeat(50));
         console.log(`🚀 Server berjalan di: http://localhost:${PORT}`);
         console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-        console.log(`🗄️  Database: ${process.env.DB_NAME}`);
+        console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Supabase Cloud (Connected)' : process.env.DB_NAME || 'Local'}`);
         console.log('='.repeat(50));
     });
 }

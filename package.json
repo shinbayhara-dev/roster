@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "backend": "node api/index.js",
+    "dev:all": "start cmd /k \"npm run backend\" && npm run dev",
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview"

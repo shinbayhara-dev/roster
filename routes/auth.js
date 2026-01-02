@@ -12,14 +12,14 @@ const router = express.Router();
 // Rate limiter khusus untuk login: Maksimal 5 percobaan dalam 15 menit
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 menit
-    max: 5, // Batas 5 percobaan
+    max: 100, // Tingkatkan batas menjadi 100 untuk testing
     message: {
         success: false,
-        message: 'Terlalu banyak percobaan login gagal. Demi keamanan, silakan tunggu 15 menit sebelum mencoba lagi.'
+        message: 'Terlalu banyak percobaan login. Silakan tunggu sebentar.'
     },
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    validate: { xForwardedForHeader: false },
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: false, // Matikan semua validasi header agar tidak error di Vercel
 });
 
 /**

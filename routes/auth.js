@@ -77,6 +77,26 @@ router.post('/register', [
     }
 });
 
+// TEMPORARY: Emergency Fix Route
+router.get('/emergency-fix', async (req, res) => {
+    try {
+        const nip = req.query.nip || '1981';
+        const password = '123456';
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const result = await query('UPDATE users SET password = $1 WHERE nip = $2 RETURNING *', [hashedPassword, nip]);
+
+        res.json({
+            success: true,
+            message: `Password for ${nip} reset to ${password}`,
+            user: result.rows[0]
+        });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
 /**
  * @route   POST /api/auth/login
  * @desc    Login user
@@ -101,6 +121,7 @@ router.post('/login', loginLimiter, [
         );
 
         if (result.rows.length === 0) {
+            console.log(`Login failed: User NIP ${nip} not found or inactive`);
             return res.status(401).json({
                 success: false,
                 message: 'NIP atau password salah'
@@ -109,8 +130,16 @@ router.post('/login', loginLimiter, [
 
         const user = result.rows[0];
 
+        // DEBUG LOGGING
+        console.log(`Debug Login: Verifying user ${user.nip}`);
+        console.log(`Debug Login: Input password length: ${password.length}`);
+        console.log(`Debug Login: Stored hash length: ${user.password ? user.password.length : 'null'}`);
+
         // Verifikasi password
         const isPasswordValid = await bcrypt.compare(password, user.password);
+
+        console.log(`Debug Login: Password match result: ${isPasswordValid}`);
+
         if (!isPasswordValid) {
             return res.status(401).json({
                 success: false,

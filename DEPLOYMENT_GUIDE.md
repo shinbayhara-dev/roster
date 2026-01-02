@@ -1,4 +1,5 @@
-# Panduan Deployment (Vercel + Supabase)
+# CSSD Roster Pro
+*Update: 2026-01-02 20:15*
 
 ## 1. Persiapan Database (Supabase)
 1. Buka [Supabase](https://supabase.com) dan buat akun/project baru.

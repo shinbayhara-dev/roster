@@ -17,6 +17,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust Vercel's proxy (necessary for express-rate-limit)
+app.set('trust proxy', 1);
+
 // Debugging Environment Variables di Vercel
 if (process.env.VERCEL === '1') {
     console.log('🌐 Running on Vercel');

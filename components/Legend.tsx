@@ -30,22 +30,31 @@ export const Legend: React.FC<LegendProps> = ({ masterShifts = [], masterUnits =
     return defs.map(d => {
       let dynamicStyle = {};
 
-      // Mapping frontend code to backend code
-      let backendCode = d.code;
-      if (d.code === 'P') backendCode = 'PAGI';
-      if (d.code === 'S') backendCode = 'SIANG';
-      if (d.code === 'M') backendCode = 'MALAM';
-      if (d.code === 'L') backendCode = 'OFF';
-      if (d.code === 'C') backendCode = 'CUTI'; // Or whatever user named it, or maybe it doesn't match a shift
-      if (d.code === 'PS/S') backendCode = 'PS/S'; // Check if DB has this exact code or similar
+      // Normalize codes for comparison
+      const normalize = (s: string) => s?.trim().toUpperCase();
+      const code = normalize(d.code);
 
-      const dynamicUnit = masterUnits.find(u => u.code === d.code || u.code === backendCode);
-      const dynamicShift = masterShifts.find(s => s.code === d.code || s.code === backendCode);
+      // Mapping frontend code to backend code
+      let backendCode = code;
+      if (code === 'P') backendCode = 'PAGI';
+      if (code === 'S') backendCode = 'SIANG';
+      if (code === 'M') backendCode = 'MALAM';
+      if (code === 'L') backendCode = 'OFF';
+      if (code === 'C') backendCode = 'CUTI';
+      if (code === 'PS/S') backendCode = 'PS/S';
+      if (code === 'SM') backendCode = 'SM';
+
+      // Find in Master Units (Task/Rooms) or Master Shifts
+      // We check for exact code match OR backend mapped code match
+      const dynamicUnit = masterUnits.find(u => normalize(u.code) === code || normalize(u.code) === backendCode);
+      const dynamicShift = masterShifts.find(s => normalize(s.code) === code || normalize(s.code) === backendCode);
 
       const color = dynamicUnit?.color || dynamicShift?.color;
+
       if (color) {
         dynamicStyle = {
           backgroundColor: color,
+          borderColor: color, // Also color the border
           color: getContrastYIQ(color)
         };
       }

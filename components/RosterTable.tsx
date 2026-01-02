@@ -110,8 +110,21 @@ export const RosterTable: React.FC<RosterTableProps> = ({
                                     let dynamicBgStr = '';
                                     let dynamicTextStr = '';
 
-                                    const dynamicUnit = masterUnits.find(u => u.code === code);
-                                    const dynamicShift = masterShifts.find(s => s.code === code);
+                                    const normalize = (s: string) => s?.trim().toUpperCase();
+                                    const nCode = normalize(code);
+                                    let backendCode = nCode;
+
+                                    // Reverse mapping for lookup if code is short
+                                    if (nCode === 'P') backendCode = 'PAGI';
+                                    if (nCode === 'S') backendCode = 'SIANG';
+                                    if (nCode === 'M') backendCode = 'MALAM';
+                                    if (nCode === 'L') backendCode = 'OFF';
+
+                                    // Also handle if code is Long (PAGI) but we want to look up P? No, usually look up by what we have.
+                                    // Check both exact and mapped
+
+                                    const dynamicUnit = masterUnits.find(u => normalize(u.code) === nCode || normalize(u.code) === backendCode);
+                                    const dynamicShift = masterShifts.find(s => normalize(s.code) === nCode || normalize(s.code) === backendCode);
 
                                     if (dynamicUnit?.color) {
                                         dynamicBgStr = dynamicUnit.color;

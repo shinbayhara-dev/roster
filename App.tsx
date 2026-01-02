@@ -270,6 +270,8 @@ const App = () => {
                   getRecordForCell={getRecordForCell}
                   canEdit={!!canEdit}
                   currentUser={currentUser}
+                  masterShifts={masterShifts}
+                  masterUnits={masterUnits}
                   onCellClick={(empId, dateKey, day, employee) => {
                     if (canEdit) {
                       setEditingCell({ empId, dateKey, day, employee, mode: 'edit' });

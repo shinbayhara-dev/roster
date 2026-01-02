@@ -5,6 +5,24 @@ import { SHIFT_DEFINITIONS } from '../constants';
 import { generateDateKey, getDayName } from '../utils/scheduleUtils';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
+// Helper for text contrast
+const getContrastYIQ = (hexcolor: string) => {
+    if (!hexcolor) return '#000000';
+    try {
+        hexcolor = hexcolor.replace("#", "");
+        if (hexcolor.length === 3) {
+            hexcolor = hexcolor.split('').map(char => char + char).join('');
+        }
+        var r = parseInt(hexcolor.substr(0, 2), 16);
+        var g = parseInt(hexcolor.substr(2, 2), 16);
+        var b = parseInt(hexcolor.substr(4, 2), 16);
+        var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        return (yiq >= 128) ? '#111827' : '#FFFFFF';
+    } catch (e) {
+        return '#000000';
+    }
+}
+
 interface MobileRosterListProps {
     employees: Employee[];
     currentMonth: number;
@@ -14,6 +32,8 @@ interface MobileRosterListProps {
     onCellClick?: (empId: string, dateKey: string, day: number, employee: Employee) => void;
     canEdit: boolean;
     currentUser: User | null;
+    masterShifts?: any[];
+    masterUnits?: any[];
 }
 
 export const MobileRosterList: React.FC<MobileRosterListProps> = ({
@@ -24,7 +44,9 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
     getRecordForCell,
     onCellClick,
     canEdit,
-    currentUser
+    currentUser,
+    masterShifts = [],
+    masterUnits = []
 }) => {
     // Determine initial day (today if valid, else 1)
     const today = new Date();
@@ -92,6 +114,33 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
                         category: 'leave'
                     };
 
+                    // Dynamic Color Lookup
+                    let dynamicBgStr = '';
+                    let dynamicTextStr = '';
+
+                    const normalize = (s: string) => s?.trim().toUpperCase();
+                    const nCode = normalize(code);
+                    let backendCode = nCode;
+
+                    if (nCode === 'P') backendCode = 'PAGI';
+                    if (nCode === 'S') backendCode = 'SIANG';
+                    if (nCode === 'M') backendCode = 'MALAM';
+                    if (nCode === 'L') backendCode = 'OFF';
+
+                    const dynamicUnit = masterUnits.find(u => normalize(u.code) === nCode || normalize(u.code) === backendCode);
+                    const dynamicShift = masterShifts.find(s => normalize(s.code) === nCode || normalize(s.code) === backendCode);
+
+                    if (dynamicUnit?.color) {
+                        dynamicBgStr = dynamicUnit.color;
+                        dynamicTextStr = getContrastYIQ(dynamicBgStr);
+                    } else if (dynamicShift?.color) {
+                        dynamicBgStr = dynamicShift.color;
+                        dynamicTextStr = getContrastYIQ(dynamicBgStr);
+                    }
+
+                    const bgColorClass = dynamicBgStr ? '' : def.color;
+                    const textColorClass = dynamicBgStr ? '' : def.textColor;
+
                     const isMe = currentUser?.nip === emp.employeeId;
                     const isClickable = canEdit || (isMe && !!record);
 
@@ -123,10 +172,13 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
                             </div>
 
                             {/* Right: Status Badge */}
-                            <div className={`
-                                shrink-0 px-3 py-1.5 rounded-lg flex flex-col items-center justify-center min-w-[70px]
-                                ${def.color} ${def.textColor}
-                            `}>
+                            <div
+                                className={`
+                                    shrink-0 px-3 py-1.5 rounded-lg flex flex-col items-center justify-center min-w-[70px]
+                                    ${bgColorClass} ${textColorClass}
+                                `}
+                                style={dynamicBgStr ? { backgroundColor: dynamicBgStr, color: dynamicTextStr } : {}}
+                            >
                                 <span className="text-sm font-black">{def.code || code || '-'}</span>
                                 {/* Optional: Show Task Name below code if it's a task */}
                                 {def.category === 'task' && (

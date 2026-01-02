@@ -2,7 +2,7 @@
   "name": "cssd-roster-pro",
   "private": true,
   "version": "0.0.0",
-  "author": "Singgih Raharjo <singgihraharjo@gmail.com>",
+  "author": "Singgih Raharjo",
   "type": "module",
   "scripts": {
     "dev": "vite",

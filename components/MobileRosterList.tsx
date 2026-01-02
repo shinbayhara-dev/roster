@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Employee, User } from '../types';
+import { Employee, User, ShiftDefinition } from '../types';
 import { SHIFT_DEFINITIONS } from '../constants';
 import { generateDateKey, getDayName } from '../utils/scheduleUtils';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
@@ -84,11 +84,12 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
                     const record = getRecordForCell(emp.employeeId, dateKey);
                     const code = record?.taskCode || record?.shiftCode || '';
                     // Prioritize Task color (Unit), fallback to Shift color
-                    const def = SHIFT_DEFINITIONS[code] || SHIFT_DEFINITIONS[record?.shiftCode || ''] || {
+                    const def: ShiftDefinition = SHIFT_DEFINITIONS[code] || SHIFT_DEFINITIONS[record?.shiftCode || ''] || {
                         color: 'bg-white',
                         textColor: 'text-gray-400',
                         label: 'Tidak ada jadwal',
-                        code: '-'
+                        code: '-',
+                        category: 'leave'
                     };
 
                     const isMe = currentUser?.nip === emp.employeeId;

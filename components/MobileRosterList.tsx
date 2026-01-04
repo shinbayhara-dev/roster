@@ -37,11 +37,17 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
         ? today.getDate()
         : 1;
 
+
     const [selectedDay, setSelectedDay] = useState(initialDay);
 
     // Ensure selectedDay matches current month when month changes
     useEffect(() => {
-        setSelectedDay(1);
+        const now = new Date();
+        if (now.getMonth() === currentMonth && now.getFullYear() === currentYear) {
+            setSelectedDay(now.getDate());
+        } else {
+            setSelectedDay(1);
+        }
     }, [currentMonth, currentYear]);
 
     const handlePrevDay = () => {
@@ -52,8 +58,17 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
         if (selectedDay < daysArray.length) setSelectedDay(selectedDay + 1);
     };
 
+
     const dateKey = generateDateKey(currentYear, currentMonth, selectedDay);
     const dayName = getDayName(currentYear, currentMonth, selectedDay);
+
+    // Auto-scroll the date strip
+    useEffect(() => {
+        const btn = document.getElementById(`day-btn-${selectedDay}`);
+        if (btn) {
+            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    }, [selectedDay]);
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[600px] lg:hidden">
@@ -68,8 +83,14 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
                         <ChevronLeft size={20} />
                     </button>
 
+
                     <div className="text-center">
-                        <p className="text-xs font-medium opacity-80 uppercase tracking-widest">{dayName}</p>
+                        <p className="text-xs font-medium opacity-80 uppercase tracking-widest flex items-center justify-center gap-1">
+                            {dayName}
+                            {today.getDate() === selectedDay && today.getMonth() === currentMonth && today.getFullYear() === currentYear && (
+                                <span className="bg-white text-indigo-600 text-[10px] px-1.5 py-0.5 rounded-full font-black ml-1">HARI INI</span>
+                            )}
+                        </p>
                         <h3 className="text-2xl font-black">{selectedDay} <span className="text-lg font-bold opacity-80">{new Date(currentYear, currentMonth).toLocaleDateString('id-ID', { month: 'short' })}</span></h3>
                     </div>
 
@@ -80,6 +101,33 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
                     >
                         <ChevronRight size={20} />
                     </button>
+                </div>
+
+            </div>
+
+            {/* Horizontal Day Selector */}
+            <div className="bg-white border-b border-gray-100 p-2 overflow-x-auto whitespace-nowrap custom-scrollbar shrink-0">
+                <div className="flex gap-2">
+                    {daysArray.map(day => {
+                        const isSelected = day === selectedDay;
+                        const isToday = today.getDate() === day && today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+                        return (
+                            <button
+                                key={day}
+                                id={`day-btn-${day}`}
+                                onClick={() => setSelectedDay(day)}
+                                className={`
+                                    min-w-[44px] h-12 rounded-xl flex flex-col items-center justify-center transition-all shrink-0
+                                    ${isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100 scale-105' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}
+                                    ${isToday && !isSelected ? 'border-2 border-indigo-200 text-indigo-600' : ''}
+                                `}
+                            >
+                                <span className="text-[8px] font-bold uppercase">{getDayName(currentYear, currentMonth, day).substring(0, 3)}</span>
+                                <span className="text-sm font-black">{day}</span>
+                                {isToday && <div className={`w-1 h-1 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-600'} mt-0.5`} />}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

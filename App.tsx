@@ -282,8 +282,14 @@ const App = () => {
                 />
               </div>
 
+
               <div className="mt-6">
-                <Legend masterShifts={masterShifts} masterUnits={masterUnits} />
+                <Legend
+                  masterShifts={masterShifts}
+                  masterUnits={masterUnits}
+                  canEdit={currentUser?.role === 'admin' || currentUser?.role === 'supervisor'}
+                  onRefresh={refreshData}
+                />
               </div>
             </div>
           )}

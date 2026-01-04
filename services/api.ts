@@ -146,9 +146,31 @@ export const api = {
         });
     },
 
+
     rejectSwap: async (id: number) => {
         return authFetch(`/swaps/${id}/reject`, {
             method: 'PUT',
+        });
+    },
+
+    // Master Data CRUD
+    createUnitOrShift: async (endpoint: string, data: any) => {
+        return authFetch(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    updateUnitOrShift: async (endpoint: string, id: number, data: any) => {
+        return authFetch(`${endpoint}/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    deleteUnitOrShift: async (endpoint: string, id: number) => {
+        return authFetch(`${endpoint}/${id}`, {
+            method: 'DELETE',
         });
     }
 };

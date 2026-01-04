@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Employee, MonthlyRoster, UserRole, User } from '../types';
 import { SHIFT_DEFINITIONS } from '../constants';
-import { generateDateKey, isWeekend, getDayName } from '../utils/scheduleUtils';
+
+import { generateDateKey, isWeekend, getDayName, getContrastYIQ, normalizeCode, BACKEND_CODE_MAP } from '../utils/scheduleUtils';
 import { getHolidayName } from '../utils/holidays';
 
 interface RosterTableProps {
@@ -16,23 +17,6 @@ interface RosterTableProps {
     currentUser: User | null;
     masterShifts: any[];
     masterUnits: any[];
-}
-
-const getContrastYIQ = (hexcolor: string) => {
-    if (!hexcolor) return '#000000';
-    try {
-        hexcolor = hexcolor.replace("#", "");
-        if (hexcolor.length === 3) {
-            hexcolor = hexcolor.split('').map(char => char + char).join('');
-        }
-        var r = parseInt(hexcolor.substr(0, 2), 16);
-        var g = parseInt(hexcolor.substr(2, 2), 16);
-        var b = parseInt(hexcolor.substr(4, 2), 16);
-        var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-        return (yiq >= 128) ? '#111827' : '#FFFFFF'; // gray-900 vs white
-    } catch (e) {
-        return '#000000';
-    }
 }
 
 export const RosterTable: React.FC<RosterTableProps> = ({
@@ -110,21 +94,11 @@ export const RosterTable: React.FC<RosterTableProps> = ({
                                     let dynamicBgStr = '';
                                     let dynamicTextStr = '';
 
-                                    const normalize = (s: string) => s?.trim().toUpperCase();
-                                    const nCode = normalize(code);
-                                    let backendCode = nCode;
+                                    const nCode = normalizeCode(code);
+                                    const backendCode = BACKEND_CODE_MAP[nCode] || nCode;
 
-                                    // Reverse mapping for lookup if code is short
-                                    if (nCode === 'P') backendCode = 'PAGI';
-                                    if (nCode === 'S') backendCode = 'SIANG';
-                                    if (nCode === 'M') backendCode = 'MALAM';
-                                    if (nCode === 'L') backendCode = 'OFF';
-
-                                    // Also handle if code is Long (PAGI) but we want to look up P? No, usually look up by what we have.
-                                    // Check both exact and mapped
-
-                                    const dynamicUnit = masterUnits.find(u => normalize(u.code) === nCode || normalize(u.code) === backendCode);
-                                    const dynamicShift = masterShifts.find(s => normalize(s.code) === nCode || normalize(s.code) === backendCode);
+                                    const dynamicUnit = masterUnits.find(u => normalizeCode(u.code) === nCode || normalizeCode(u.code) === backendCode);
+                                    const dynamicShift = masterShifts.find(s => normalizeCode(s.code) === nCode || normalizeCode(s.code) === backendCode);
 
                                     if (dynamicUnit?.color) {
                                         dynamicBgStr = dynamicUnit.color;

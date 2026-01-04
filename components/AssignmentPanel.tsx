@@ -193,8 +193,10 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
               return (
                 <button
                   key={s.code}
+
                   onClick={() => {
                     const newShift = s.code === selectedShift ? null : s.code;
+                    setSelectedShift(newShift);
                     // Auto-clear task if shift is leave/off
                     if (s.category === 'leave') {
                       setSelectedTask(null);

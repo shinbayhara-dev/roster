@@ -83,33 +83,40 @@ export const RosterTable: React.FC<RosterTableProps> = ({
                                 </td>
                                 <td className="sticky left-56 z-10 bg-white border border-gray-300 text-[9px] text-center text-gray-500">{emp.employeeId}</td>
                                 {daysArray.map(day => {
+
                                     const dateKey = generateDateKey(currentYear, currentMonth, day);
                                     const record = getRecordForCell(emp.employeeId, dateKey);
-                                    const code = record?.taskCode || record?.shiftCode || '';
 
-                                    // Default fallback
-                                    let def = SHIFT_DEFINITIONS[code] || SHIFT_DEFINITIONS[record?.shiftCode || ''] || { color: 'bg-white', textColor: 'text-gray-900', code: code };
+                                    const nShiftCode = normalizeCode(record?.shiftCode || '');
+                                    const nTaskCode = normalizeCode(record?.taskCode || '');
 
-                                    // Try dynamic lookup
-                                    let dynamicBgStr = '';
-                                    let dynamicTextStr = '';
+                                    // Lookup Shift Info
+                                    const dynamicShift = masterShifts.find(s => normalizeCode(s.code) === nShiftCode || normalizeCode(s.code) === BACKEND_CODE_MAP[nShiftCode]);
+                                    const shiftColor = dynamicShift?.color || (SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-white' ? '#ffffff' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-blue-100' ? '#dbeafe' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-indigo-600' ? '#4f46e5' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-red-600' ? '#dc2626' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-yellow-300' ? '#fde047' : '#ffffff');
 
-                                    const nCode = normalizeCode(code);
-                                    const backendCode = BACKEND_CODE_MAP[nCode] || nCode;
+                                    // Lookup Task Info
+                                    const dynamicUnit = masterUnits.find(u => normalizeCode(u.code) === nTaskCode);
+                                    const taskColor = dynamicUnit?.color;
 
-                                    const dynamicUnit = masterUnits.find(u => normalizeCode(u.code) === nCode || normalizeCode(u.code) === backendCode);
-                                    const dynamicShift = masterShifts.find(s => normalizeCode(s.code) === nCode || normalizeCode(s.code) === backendCode);
+                                    // CSS for Dual Background
+                                    let cellStyle: React.CSSProperties = {};
+                                    let displayCode = nTaskCode || nShiftCode || '';
+                                    let textColor = '#111827';
 
-                                    if (dynamicUnit?.color) {
-                                        dynamicBgStr = dynamicUnit.color;
-                                        dynamicTextStr = getContrastYIQ(dynamicBgStr);
-                                    } else if (dynamicShift?.color) {
-                                        dynamicBgStr = dynamicShift.color;
-                                        dynamicTextStr = getContrastYIQ(dynamicBgStr);
+                                    if (taskColor && shiftColor && nTaskCode && nShiftCode) {
+                                        // Both present: DUAL COLOR SPLIT
+                                        cellStyle = {
+                                            background: `linear-gradient(135deg, ${shiftColor} 50%, ${taskColor} 50%)`,
+                                            color: getContrastYIQ(taskColor) // Prioritize task color contrast for text
+                                        };
+                                        textColor = getContrastYIQ(taskColor);
+                                    } else if (taskColor) {
+                                        cellStyle = { backgroundColor: taskColor, color: getContrastYIQ(taskColor) };
+                                        textColor = getContrastYIQ(taskColor);
+                                    } else if (shiftColor) {
+                                        cellStyle = { backgroundColor: shiftColor, color: getContrastYIQ(shiftColor) };
+                                        textColor = getContrastYIQ(shiftColor);
                                     }
-
-                                    const bgColorClass = dynamicBgStr ? '' : def.color;
-                                    const textColorClass = dynamicBgStr ? '' : def.textColor;
 
                                     const isMe = currentUser?.nip === emp.employeeId;
                                     const isClickable = canEdit || (isMe && !!record);
@@ -128,10 +135,10 @@ export const RosterTable: React.FC<RosterTableProps> = ({
                                         >
                                             {record && (
                                                 <div
-                                                    className={`w-full h-full flex items-center justify-center font-bold text-[10px] ${bgColorClass} ${textColorClass}`}
-                                                    style={dynamicBgStr ? { backgroundColor: dynamicBgStr, color: dynamicTextStr } : {}}
+                                                    className="w-full h-full flex items-center justify-center font-bold text-[10px]"
+                                                    style={cellStyle}
                                                 >
-                                                    {def.code || code}
+                                                    {displayCode}
                                                 </div>
                                             )}
                                         </td>

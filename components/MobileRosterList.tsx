@@ -85,43 +85,44 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
 
             {/* List of Staff for this Day */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
+
                 {employees.map(emp => {
                     const record = getRecordForCell(emp.employeeId, dateKey);
-                    const code = record?.taskCode || record?.shiftCode || '';
-                    // Prioritize Task color (Unit), fallback to Shift color
-                    const def: ShiftDefinition = SHIFT_DEFINITIONS[code] || SHIFT_DEFINITIONS[record?.shiftCode || ''] || {
-                        color: 'bg-white',
-                        textColor: 'text-gray-400',
-                        label: 'Tidak ada jadwal',
-                        code: '-',
-                        category: 'leave'
-                    };
 
-                    // Dynamic Color Lookup
-                    let dynamicBgStr = '';
-                    let dynamicTextStr = '';
+                    const nShiftCode = normalizeCode(record?.shiftCode || '');
+                    const nTaskCode = normalizeCode(record?.taskCode || '');
 
-                    const nCode = normalizeCode(code);
-                    const backendCode = BACKEND_CODE_MAP[nCode] || nCode;
+                    // Lookup Shift Info
+                    const dynamicShift = masterShifts.find(s => normalizeCode(s.code) === nShiftCode || normalizeCode(s.code) === BACKEND_CODE_MAP[nShiftCode]);
+                    const shiftColor = dynamicShift?.color || (SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-white' ? '#ffffff' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-blue-100' ? '#dbeafe' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-indigo-600' ? '#4f46e5' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-red-600' ? '#dc2626' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-yellow-300' ? '#fde047' : '#ffffff');
 
-                    const dynamicUnit = masterUnits.find(u => normalizeCode(u.code) === nCode || normalizeCode(u.code) === backendCode);
-                    const dynamicShift = masterShifts.find(s => normalizeCode(s.code) === nCode || normalizeCode(s.code) === backendCode);
+                    // Lookup Task Info
+                    const dynamicUnit = masterUnits.find(u => normalizeCode(u.code) === nTaskCode);
+                    const taskColor = dynamicUnit?.color;
 
-                    if (dynamicUnit?.color) {
-                        dynamicBgStr = dynamicUnit.color;
-                        dynamicTextStr = getContrastYIQ(dynamicBgStr);
-                    } else if (dynamicShift?.color) {
-                        dynamicBgStr = dynamicShift.color;
-                        dynamicTextStr = getContrastYIQ(dynamicBgStr);
+                    const def = SHIFT_DEFINITIONS[nTaskCode || nShiftCode] || { label: 'Tidak ada jadwal', code: '-', category: 'leave' };
+
+                    // CSS for Dual Background
+                    let cellStyle: React.CSSProperties = {};
+                    let displayCode = nTaskCode || nShiftCode || '-';
+                    let textColor = '#111827';
+                    let displayLabel = dynamicUnit?.name || dynamicShift?.name || (def as any).label || '-';
+
+                    if (taskColor && shiftColor && nTaskCode && nShiftCode) {
+                        cellStyle = {
+                            background: `linear-gradient(135deg, ${shiftColor} 50%, ${taskColor} 50%)`,
+                        };
+                        textColor = getContrastYIQ(taskColor);
+                    } else if (taskColor) {
+                        cellStyle = { backgroundColor: taskColor };
+                        textColor = getContrastYIQ(taskColor);
+                    } else if (shiftColor) {
+                        cellStyle = { backgroundColor: shiftColor };
+                        textColor = getContrastYIQ(shiftColor);
                     }
-
-                    const bgColorClass = dynamicBgStr ? '' : def.color;
-                    const textColorClass = dynamicBgStr ? '' : def.textColor;
 
                     const isMe = currentUser?.nip === emp.employeeId;
                     const isClickable = canEdit || (isMe && !!record);
-
-                    // Special styling if "Tidak ada jadwal" (empty)
                     const isEmpty = !record;
 
                     return (
@@ -150,17 +151,14 @@ export const MobileRosterList: React.FC<MobileRosterListProps> = ({
 
                             {/* Right: Status Badge */}
                             <div
-                                className={`
-                                    shrink-0 px-3 py-1.5 rounded-lg flex flex-col items-center justify-center min-w-[70px]
-                                    ${bgColorClass} ${textColorClass}
-                                `}
-                                style={dynamicBgStr ? { backgroundColor: dynamicBgStr, color: dynamicTextStr } : {}}
+                                className="shrink-0 px-3 py-1.5 rounded-lg flex flex-col items-center justify-center min-w-[70px]"
+                                style={{ ...cellStyle, color: textColor }}
                             >
-                                <span className="text-sm font-black">{def.code || code || '-'}</span>
-                                {/* Optional: Show Task Name below code if it's a task */}
-                                {def.category === 'task' && (
+                                <span className="text-sm font-black">{displayCode}</span>
+                                {/* Optional: Show Label if it fits */}
+                                {!isEmpty && (
                                     <span className="text-[8px] font-bold opacity-80 max-w-[80px] truncate text-center leading-tight mt-0.5">
-                                        {def.label}
+                                        {displayLabel}
                                     </span>
                                 )}
                             </div>

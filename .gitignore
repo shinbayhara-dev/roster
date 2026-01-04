@@ -35,7 +35,18 @@ backend/.env
 node_modules/
 backend/node_modules/
 
+
 # Production build
 dist/
 dist-ssr/
 build/
+
+# Helper & Debug scripts
+check_db_sync.js
+check_db_sync_v2.js
+debug_shifts.js
+seed_master_data.js
+
+sync_status.txt
+sync_v2.txt
+test_db_connection.js

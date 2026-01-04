@@ -42,11 +42,13 @@ export const useRoster = (isAuthenticated: boolean, currentUser: User | null) =>
             setMasterUnits(unitsRes.data);
             setMasterShifts(shiftsRes.data);
 
+
             const validEmployees = empRes.data.map((u: any) => ({
                 id: u.id,
                 employeeId: u.nip,
                 name: u.name,
                 nip: u.nip,
+                role: u.role,
                 position: u.position
             }));
             setEmployees(validEmployees);

@@ -30,10 +30,12 @@ export interface ShiftDefinition {
   category: 'primary' | 'task' | 'leave';
 }
 
+
 export interface Employee {
   id: number; // Backend uses integer ID
   nip: string; // Backend uses nip instead of employeeId
   name: string;
+  role: UserRole;
   position?: string;
 }
 

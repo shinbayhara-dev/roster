@@ -45,11 +45,27 @@ const App = () => {
   const [showSwapList, setShowSwapList] = useState(false);
 
   // --- Derived State UI ---
+
   const filteredEmployees = useMemo(() => {
-    return employees.filter(e =>
-      e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      e.employeeId.includes(searchQuery)
-    );
+    const rolePriority: Record<string, number> = {
+      [UserRole.ADMIN]: 1,
+      [UserRole.SUPERVISOR]: 2,
+      [UserRole.STAFF]: 3
+    };
+
+    return employees
+      .filter(e =>
+        e.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.employeeId.includes(searchQuery)
+      )
+      .sort((a, b) => {
+        const priorityA = rolePriority[a.role] || 99;
+        const priorityB = rolePriority[b.role] || 99;
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+        return a.name.localeCompare(b.name);
+      });
   }, [employees, searchQuery]);
 
   const selectedEmployee = useMemo(() => {

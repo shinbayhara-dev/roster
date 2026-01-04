@@ -26,8 +26,10 @@ export const Legend: React.FC<LegendProps> = ({ masterShifts = [], masterUnits =
   const [activeCategory, setActiveCategory] = useState<'primary' | 'task' | 'leave'>('task');
   const [formData, setFormData] = useState<any>({});
 
+
   const enrichDefinitions = (category: string) => {
     const staticDefs = Object.values(SHIFT_DEFINITIONS).filter(d => d.category === category);
+    const usedDbIds = new Set<number>();
 
     const enriched = staticDefs.map(d => {
       const code = normalizeCode(d.code);
@@ -37,6 +39,7 @@ export const Legend: React.FC<LegendProps> = ({ masterShifts = [], masterUnits =
         || masterShifts.find(s => normalizeCode(s.code) === code || normalizeCode(s.code) === bCode || normalizeCode(s.name) === normalizeCode(d.label));
 
       if (match) {
+        usedDbIds.add(match.id);
         return {
           ...d,
           id: match.id,
@@ -55,9 +58,7 @@ export const Legend: React.FC<LegendProps> = ({ masterShifts = [], masterUnits =
 
     if (category === 'task') {
       masterUnits.forEach(u => {
-        const uCode = normalizeCode(u.code);
-        const alreadyIn = enriched.some(e => normalizeCode((e as any).code) === uCode || normalizeCode((e as any).label) === normalizeCode(u.name));
-        if (!alreadyIn) {
+        if (!usedDbIds.has(u.id)) {
           enriched.push({
             id: u.id,
             code: u.code,
@@ -71,6 +72,7 @@ export const Legend: React.FC<LegendProps> = ({ masterShifts = [], masterUnits =
               color: getContrastYIQ(u.color)
             }
           } as any);
+          usedDbIds.add(u.id);
         }
       });
     }
@@ -80,23 +82,21 @@ export const Legend: React.FC<LegendProps> = ({ masterShifts = [], masterUnits =
         const sCode = normalizeCode(s.code);
         const isLeave = sCode === 'OFF' || sCode === 'CUTI' || normalizeCode(s.name).includes('LIBUR') || normalizeCode(s.name).includes('CUTI');
 
-        if ((category === 'leave' && isLeave) || (category === 'primary' && !isLeave)) {
-          const alreadyIn = enriched.some(e => normalizeCode((e as any).code) === sCode || normalizeCode((e as any).label) === normalizeCode(s.name));
-          if (!alreadyIn) {
-            enriched.push({
-              id: s.id,
-              code: s.code,
-              label: s.name,
-              category: isLeave ? 'leave' : 'primary',
-              isFromDB: true,
-              dbType: 'shift',
-              dynamicStyle: {
-                backgroundColor: s.color,
-                borderColor: s.color,
-                color: getContrastYIQ(s.color)
-              }
-            } as any);
-          }
+        if (((category === 'leave' && isLeave) || (category === 'primary' && !isLeave)) && !usedDbIds.has(s.id)) {
+          enriched.push({
+            id: s.id,
+            code: s.code,
+            label: s.name,
+            category: isLeave ? 'leave' : 'primary',
+            isFromDB: true,
+            dbType: 'shift',
+            dynamicStyle: {
+              backgroundColor: s.color,
+              borderColor: s.color,
+              color: getContrastYIQ(s.color)
+            }
+          } as any);
+          usedDbIds.add(s.id);
         }
       });
     }

@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import {
   Users, Activity, User as UserIcon, Settings,
-  Menu, Search, Plus, Clock, ChevronLeft, ChevronRight, LogOut, ShieldCheck, Calendar, ArrowRightLeft
+
+  Menu, Search, Plus, Clock, ChevronLeft, ChevronRight, LogOut, ShieldCheck, Calendar, ArrowRightLeft, PieChart
 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
 import { UserRole, Employee } from './types';
@@ -20,7 +21,9 @@ import { useAuth } from './hooks/useAuth';
 import { useRoster } from './hooks/useRoster';
 import { MobileRosterList } from './components/MobileRosterList';
 import { SwapRequestModal } from './components/SwapRequestModal';
+
 import { SwapApprovalsModal } from './components/SwapApprovalsModal';
+import { calculateShiftHours, normalizeCode, BACKEND_CODE_MAP } from './utils/scheduleUtils';
 
 
 const App = () => {
@@ -78,20 +81,32 @@ const App = () => {
     return employees.find(e => String(e.id) === String(selectedIndividualId)) || employees[0];
   }, [employees, selectedIndividualId, currentUser, activeView]);
 
+
   const stats = useMemo(() => {
     const today = new Date();
-    if (today.getMonth() !== currentMonth || today.getFullYear() !== currentYear) {
-      return { onDutyToday: 0, morningShift: 0, afternoonShift: 0, nightShift: 0 };
-    }
+    const isCurrentMonth = today.getMonth() === currentMonth && today.getFullYear() === currentYear;
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    const todayRecords = roster.records.filter(r => r.date === todayKey);
+    const todayRecords = isCurrentMonth ? roster.records.filter(r => r.date === todayKey) : [];
+
+    // Calculate Monthly Total Hours
+    let totalHoursMonth = 0;
+    roster.records.forEach(r => {
+      const nShiftCode = normalizeCode(r.shiftCode);
+      const bCode = BACKEND_CODE_MAP[nShiftCode] || nShiftCode;
+      const shiftData = masterShifts.find(s => normalizeCode(s.code) === nShiftCode || normalizeCode(s.code) === bCode);
+      if (shiftData) {
+        totalHoursMonth += calculateShiftHours(shiftData.start_time, shiftData.end_time);
+      }
+    });
+
     return {
       onDutyToday: todayRecords.length,
       morningShift: todayRecords.filter(r => r.shiftCode === 'P').length,
       afternoonShift: todayRecords.filter(r => r.shiftCode === 'S').length,
       nightShift: todayRecords.filter(r => r.shiftCode === 'M').length,
+      totalHoursMonth
     };
-  }, [roster, currentMonth, currentYear]);
+  }, [roster, currentMonth, currentYear, masterShifts]);
 
   // --- Handlers ---
   const handleAddSchedule = () => {
@@ -245,11 +260,13 @@ const App = () => {
                   </div>
                 </div>
 
-                <div className="hidden lg:grid grid-cols-4 gap-4">
+
+                <div className="hidden lg:grid grid-cols-5 gap-4">
                   <StatCard label="Sedang Dinas" value={stats.onDutyToday} icon={<Users size={16} />} color="bg-indigo-600" />
                   <StatCard label="Pagi" value={stats.morningShift} icon={<Clock size={16} />} color="bg-white text-gray-900 border border-gray-200" />
                   <StatCard label="Sore" value={stats.afternoonShift} icon={<Activity size={16} />} color="bg-blue-200 text-blue-900" />
                   <StatCard label="Malam" value={stats.nightShift} icon={<Activity size={16} />} color="bg-indigo-600" />
+                  <StatCard label="Total Jam (Bulan)" value={Math.round(stats.totalHoursMonth)} icon={<PieChart size={16} />} color="bg-orange-100 text-orange-700" />
                 </div>
               </div>
 
@@ -310,8 +327,15 @@ const App = () => {
             </div>
           )}
 
+
           {activeView === 'individual' && (
-            <IndividualView selectedEmployee={selectedEmployee} roster={roster} daysArray={daysArray} />
+            <IndividualView
+              selectedEmployee={selectedEmployee}
+              roster={roster}
+              daysArray={daysArray}
+              masterShifts={masterShifts}
+              masterUnits={masterUnits}
+            />
           )}
 
           {activeView === 'employees' && <EmployeeManager onUserChange={refreshData} />}

@@ -38,6 +38,7 @@ export const getContrastYIQ = (hexcolor: string) => {
 export const normalizeCode = (s: string) => s?.trim().toUpperCase();
 
 
+
 export const BACKEND_CODE_MAP: Record<string, string> = {
   'P': 'PAGI',
   'S': 'SIANG', // Common code for Siang/Sore
@@ -47,4 +48,25 @@ export const BACKEND_CODE_MAP: Record<string, string> = {
   'C': 'CUTI',
   'CUTI': 'CUTI',
   'LB': 'OFF'
+};
+
+/**
+ * Calculates duration in hours between two time strings (HH:mm or HH:mm:ss)
+ * Handles overnight shifts (e.g., 21:00 to 07:00)
+ */
+export const calculateShiftHours = (startTime?: string, endTime?: string): number => {
+  if (!startTime || !endTime) return 0;
+
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+
+  let startMinutes = startH * 60 + startM;
+  let endMinutes = endH * 60 + endM;
+
+  // If end time is before start time, it's an overnight shift
+  if (endMinutes < startMinutes) {
+    endMinutes += 24 * 60;
+  }
+
+  return (endMinutes - startMinutes) / 60;
 };

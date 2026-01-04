@@ -7,13 +7,24 @@ import { getHolidayName } from '../utils/holidays';
 import { ShiftBadge } from './ShiftBadge';
 import { Calendar as CalendarIcon, PieChart, Info, UserCheck, Briefcase } from 'lucide-react';
 
+
 interface IndividualViewProps {
   selectedEmployee: Employee;
   roster: MonthlyRoster;
   daysArray: number[];
+  masterShifts?: any[];
+  masterUnits?: any[];
 }
 
-export const IndividualView: React.FC<IndividualViewProps> = ({ selectedEmployee, roster, daysArray }) => {
+import { calculateShiftHours, normalizeCode, BACKEND_CODE_MAP } from '../utils/scheduleUtils';
+
+export const IndividualView: React.FC<IndividualViewProps> = ({
+  selectedEmployee,
+  roster,
+  daysArray,
+  masterShifts = [],
+  masterUnits = []
+}) => {
   const employeeRecords = useMemo(() => {
     return roster.records.filter(r => r.employeeId === selectedEmployee.employeeId);
   }, [roster.records, selectedEmployee.employeeId]);
@@ -23,13 +34,25 @@ export const IndividualView: React.FC<IndividualViewProps> = ({ selectedEmployee
       P: 0, S: 0, M: 0, L: 0,
       taskBreakdown: {} as Record<string, number>,
       totalTasks: 0,
-      total: 0
+      total: 0,
+      totalHours: 0
     };
+
     employeeRecords.forEach(r => {
-      if (r.shiftCode === ShiftType.PAGI) counts.P++;
-      else if (r.shiftCode === ShiftType.SORE) counts.S++;
-      else if (r.shiftCode === ShiftType.MALAM) counts.M++;
-      else if (r.shiftCode === ShiftType.LIBUR || r.shiftCode === ShiftType.CUTI) counts.L++;
+      const nShiftCode = normalizeCode(r.shiftCode);
+      const bCode = BACKEND_CODE_MAP[nShiftCode] || nShiftCode;
+
+      // Calculate hours
+      const shiftData = masterShifts.find(s => normalizeCode(s.code) === nShiftCode || normalizeCode(s.code) === bCode);
+      if (shiftData) {
+        counts.totalHours += calculateShiftHours(shiftData.start_time, shiftData.end_time);
+      }
+
+
+      if (bCode === 'PAGI') counts.P++;
+      else if (bCode === 'SIANG') counts.S++;
+      else if (bCode === 'MALAM') counts.M++;
+      else if (bCode === 'OFF' || bCode === 'CUTI') counts.L++;
 
       if (r.taskCode) {
         counts.totalTasks++;
@@ -38,7 +61,7 @@ export const IndividualView: React.FC<IndividualViewProps> = ({ selectedEmployee
       counts.total++;
     });
     return counts;
-  }, [employeeRecords]);
+  }, [employeeRecords, masterShifts]);
 
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-4 gap-6 lg:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -56,8 +79,38 @@ export const IndividualView: React.FC<IndividualViewProps> = ({ selectedEmployee
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-6">
+
             <div className="space-y-3">
               <p className="text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <span className="w-3 h-px bg-gray-100" />
+                Analisa Jam Kerja
+              </p>
+              <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
+                <div className="flex items-end justify-between mb-1">
+                  <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-tight">Total Jam Kerja</span>
+                  <span className="text-xl font-black text-indigo-700">{Math.round(stats.totalHours)}<span className="text-[10px] ml-1">Jam</span></span>
+                </div>
+                <div className="w-full bg-indigo-100 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-indigo-600 h-full rounded-full transition-all duration-1000"
+                    style={{ width: `${Math.min((stats.totalHours / 160) * 100, 100)}%` }}
+                  />
+                </div>
+                <p className="text-[9px] text-indigo-400 font-bold mt-2 uppercase tracking-widest">Target: 160 Jam / Bulan</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Rata-rata</p>
+                  <p className="text-sm font-black text-gray-900">{stats.total > 0 ? (stats.totalHours / stats.total).toFixed(1) : 0} <span className="text-[9px] font-bold text-gray-400">Jam/Hari</span></p>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Dinas</p>
+                  <p className="text-sm font-black text-gray-900">{stats.total - stats.L} <span className="text-[9px] font-bold text-gray-400">Hari</span></p>
+                </div>
+              </div>
+
+              <p className="text-[9px] lg:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-6 flex items-center gap-2">
                 <span className="w-3 h-px bg-gray-100" />
                 Shift Utama
               </p>

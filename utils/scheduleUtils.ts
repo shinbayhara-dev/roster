@@ -37,15 +37,14 @@ export const getContrastYIQ = (hexcolor: string) => {
 
 export const normalizeCode = (s: string) => s?.trim().toUpperCase();
 
+
 export const BACKEND_CODE_MAP: Record<string, string> = {
   'P': 'PAGI',
-  'S': 'SIANG',
+  'S': 'SIANG', // Common code for Siang/Sore
   'M': 'MALAM',
   'L': 'OFF',
   'OFF': 'OFF',
-  'C': 'OFF',
-  'CUTI': 'OFF',
-  'LB': 'OFF',
-  'PS/S': 'PS/S',
-  'SM': 'SM'
+  'C': 'CUTI',
+  'CUTI': 'CUTI',
+  'LB': 'OFF'
 };

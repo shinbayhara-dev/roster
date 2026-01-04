@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { Employee, MonthlyRoster, UserRole, User } from '../types';
 import { SHIFT_DEFINITIONS } from '../constants';
 
-import { generateDateKey, isWeekend, getDayName, getContrastYIQ, normalizeCode, BACKEND_CODE_MAP } from '../utils/scheduleUtils';
+
+import { generateDateKey, isWeekend, getDayName, getContrastYIQ, normalizeCode, BACKEND_CODE_MAP, calculateShiftHours } from '../utils/scheduleUtils';
 import { getHolidayName } from '../utils/holidays';
 
 interface RosterTableProps {
@@ -48,7 +49,9 @@ export const RosterTable: React.FC<RosterTableProps> = ({
                         <tr>
                             <th className="sticky left-0 z-30 bg-gray-100 w-8 border border-gray-300 text-[10px] font-bold text-center">No</th>
                             <th className="sticky left-8 z-30 bg-gray-100 w-48 border border-gray-300 text-[10px] font-bold text-center px-1">Nama Pegawai</th>
+
                             <th className="sticky left-56 z-30 bg-gray-100 w-16 border border-gray-300 text-[10px] font-bold text-center">NIP</th>
+                            <th className="sticky left-72 z-30 bg-indigo-600 text-white w-12 border border-blue-400 text-[9px] font-bold text-center">JAM</th>
                             {daysArray.map(day => {
                                 const weekend = isWeekend(currentYear, currentMonth, day);
                                 const holidayName = getHolidayName(currentYear, currentMonth, day);
@@ -72,80 +75,102 @@ export const RosterTable: React.FC<RosterTableProps> = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {employees.map((emp, index) => (
-                            <tr key={emp.id} className="h-8">
-                                <td className="sticky left-0 z-10 bg-white border border-gray-300 text-[10px] text-center">{index + 1}</td>
-                                <td
-                                    className="sticky left-8 z-10 bg-white border border-gray-300 px-2 text-[10px] font-medium truncate cursor-pointer hover:text-indigo-600"
-                                    onClick={() => onEmployeeClick && onEmployeeClick(String(emp.id))}
-                                >
-                                    {emp.name}
-                                </td>
-                                <td className="sticky left-56 z-10 bg-white border border-gray-300 text-[9px] text-center text-gray-500">{emp.employeeId}</td>
-                                {daysArray.map(day => {
 
-                                    const dateKey = generateDateKey(currentYear, currentMonth, day);
-                                    const record = getRecordForCell(emp.employeeId, dateKey);
-
-                                    const nShiftCode = normalizeCode(record?.shiftCode || '');
-                                    const nTaskCode = normalizeCode(record?.taskCode || '');
-
-                                    // Lookup Shift Info
-                                    const dynamicShift = masterShifts.find(s => normalizeCode(s.code) === nShiftCode || normalizeCode(s.code) === BACKEND_CODE_MAP[nShiftCode]);
-                                    const shiftColor = dynamicShift?.color || (SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-white' ? '#ffffff' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-blue-100' ? '#dbeafe' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-indigo-600' ? '#4f46e5' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-red-600' ? '#dc2626' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-yellow-300' ? '#fde047' : '#ffffff');
-
-                                    // Lookup Task Info
-                                    const dynamicUnit = masterUnits.find(u => normalizeCode(u.code) === nTaskCode);
-                                    const taskColor = dynamicUnit?.color;
-
-                                    // CSS for Dual Background
-                                    let cellStyle: React.CSSProperties = {};
-                                    let displayCode = nTaskCode || nShiftCode || '';
-                                    let textColor = '#111827';
-
-                                    if (taskColor && shiftColor && nTaskCode && nShiftCode) {
-                                        // Both present: DUAL COLOR SPLIT
-                                        cellStyle = {
-                                            background: `linear-gradient(135deg, ${shiftColor} 50%, ${taskColor} 50%)`,
-                                            color: getContrastYIQ(taskColor) // Prioritize task color contrast for text
-                                        };
-                                        textColor = getContrastYIQ(taskColor);
-                                    } else if (taskColor) {
-                                        cellStyle = { backgroundColor: taskColor, color: getContrastYIQ(taskColor) };
-                                        textColor = getContrastYIQ(taskColor);
-                                    } else if (shiftColor) {
-                                        cellStyle = { backgroundColor: shiftColor, color: getContrastYIQ(shiftColor) };
-                                        textColor = getContrastYIQ(shiftColor);
+                        {employees.map((emp, index) => {
+                            // Calculate total hours for this employee
+                            let totalHours = 0;
+                            daysArray.forEach(day => {
+                                const dk = generateDateKey(currentYear, currentMonth, day);
+                                const rec = getRecordForCell(emp.employeeId, dk);
+                                if (rec) {
+                                    const nSC = normalizeCode(rec.shiftCode);
+                                    const bC = BACKEND_CODE_MAP[nSC] || nSC;
+                                    const sData = masterShifts.find(s => normalizeCode(s.code) === nSC || normalizeCode(s.code) === bC);
+                                    if (sData) {
+                                        totalHours += calculateShiftHours(sData.start_time, sData.end_time, rec.shiftCode, rec.date);
                                     }
+                                }
+                            });
 
-                                    const isMe = currentUser?.nip === emp.employeeId;
-                                    const isClickable = canEdit || (isMe && !!record);
+                            return (
+                                <tr key={emp.id} className="h-8 group">
+                                    <td className="sticky left-0 z-10 bg-white border border-gray-300 text-[10px] text-center group-hover:bg-gray-50">{index + 1}</td>
+                                    <td
+                                        className="sticky left-8 z-10 bg-white border border-gray-300 px-2 text-[10px] font-medium truncate cursor-pointer hover:text-indigo-600 group-hover:bg-gray-50"
+                                        onClick={() => onEmployeeClick && onEmployeeClick(String(emp.id))}
+                                    >
+                                        {emp.name}
+                                    </td>
+                                    <td className="sticky left-56 z-10 bg-white border border-gray-300 text-[9px] text-center text-gray-500 group-hover:bg-gray-50">{emp.employeeId}</td>
+                                    <td className="sticky left-72 z-10 bg-indigo-50 border border-gray-300 text-[10px] font-black text-center text-indigo-700 group-hover:bg-indigo-100">
+                                        {Math.round(totalHours)}
+                                    </td>
+                                    {daysArray.map(day => {
 
-                                    const date = new Date(currentYear, currentMonth, day);
-                                    const isMonday = date.getDay() === 1;
+                                        const dateKey = generateDateKey(currentYear, currentMonth, day);
+                                        const record = getRecordForCell(emp.employeeId, dateKey);
 
-                                    return (
-                                        <td
-                                            key={day}
-                                            className={`border border-gray-300 ${isMonday ? 'border-l-indigo-600 border-l-2' : ''} p-0 relative h-8 ${isClickable ? 'cursor-pointer hover:opacity-80' : ''}`}
-                                            onClick={() => {
-                                                console.log('RosterTable Cell Click:', { empId: emp.employeeId, dateKey, day });
-                                                isClickable && onCellClick && onCellClick(emp.employeeId, dateKey, day, emp);
-                                            }}
-                                        >
-                                            {record && (
-                                                <div
-                                                    className="w-full h-full flex items-center justify-center font-bold text-[10px]"
-                                                    style={cellStyle}
-                                                >
-                                                    {displayCode}
-                                                </div>
-                                            )}
-                                        </td>
-                                    );
-                                })}
-                            </tr>
-                        ))}
+                                        const nShiftCode = normalizeCode(record?.shiftCode || '');
+                                        const nTaskCode = normalizeCode(record?.taskCode || '');
+
+                                        // Lookup Shift Info
+                                        const dynamicShift = masterShifts.find(s => normalizeCode(s.code) === nShiftCode || normalizeCode(s.code) === BACKEND_CODE_MAP[nShiftCode]);
+                                        const shiftColor = dynamicShift?.color || (SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-white' ? '#ffffff' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-blue-100' ? '#dbeafe' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-indigo-600' ? '#4f46e5' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-red-600' ? '#dc2626' : SHIFT_DEFINITIONS[nShiftCode]?.color === 'bg-yellow-300' ? '#fde047' : '#ffffff');
+
+                                        // Lookup Task Info
+                                        const dynamicUnit = masterUnits.find(u => normalizeCode(u.code) === nTaskCode);
+                                        const taskColor = dynamicUnit?.color;
+
+                                        // CSS for Dual Background
+                                        let cellStyle: React.CSSProperties = {};
+                                        let displayCode = nTaskCode || nShiftCode || '';
+                                        let textColor = '#111827';
+
+                                        if (taskColor && shiftColor && nTaskCode && nShiftCode) {
+                                            // Both present: DUAL COLOR SPLIT
+                                            cellStyle = {
+                                                background: `linear-gradient(135deg, ${shiftColor} 50%, ${taskColor} 50%)`,
+                                                color: getContrastYIQ(taskColor) // Prioritize task color contrast for text
+                                            };
+                                            textColor = getContrastYIQ(taskColor);
+                                        } else if (taskColor) {
+                                            cellStyle = { backgroundColor: taskColor, color: getContrastYIQ(taskColor) };
+                                            textColor = getContrastYIQ(taskColor);
+                                        } else if (shiftColor) {
+                                            cellStyle = { backgroundColor: shiftColor, color: getContrastYIQ(shiftColor) };
+                                            textColor = getContrastYIQ(shiftColor);
+                                        }
+
+                                        const isMe = currentUser?.nip === emp.employeeId;
+                                        const isClickable = canEdit || (isMe && !!record);
+
+                                        const date = new Date(currentYear, currentMonth, day);
+                                        const isMonday = date.getDay() === 1;
+
+                                        return (
+                                            <td
+                                                key={day}
+                                                className={`border border-gray-300 ${isMonday ? 'border-l-indigo-600 border-l-2' : ''} p-0 relative h-8 ${isClickable ? 'cursor-pointer hover:opacity-80' : ''}`}
+                                                onClick={() => {
+                                                    console.log('RosterTable Cell Click:', { empId: emp.employeeId, dateKey, day });
+                                                    isClickable && onCellClick && onCellClick(emp.employeeId, dateKey, day, emp);
+                                                }}
+                                            >
+                                                {record && (
+                                                    <div
+                                                        className="w-full h-full flex items-center justify-center font-bold text-[10px]"
+                                                        style={cellStyle}
+                                                    >
+                                                        {displayCode}
+                                                    </div>
+                                                )}
+                                            </td>
+                                        );
+                                    })}
+
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

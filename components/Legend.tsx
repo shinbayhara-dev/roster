@@ -147,17 +147,27 @@ export const Legend: React.FC<LegendProps> = ({ masterShifts = [], masterUnits =
     }
   };
 
+
   const handleDelete = async (item: any) => {
-    if (!item.id) {
-      toast.error("Item ini bersifat sistem dan tidak bisa dihapus.");
+    const PROTECTED_CODES = ['P', 'S', 'M', 'L', 'OFF', 'C', 'CUTI', 'PAGI', 'SIANG', 'MALAM'];
+    const code = normalizeCode(item.code);
+
+    if (PROTECTED_CODES.includes(code)) {
+      toast.error(`Simbol "${code}" adalah bagian inti sistem dan tidak boleh dihapus agar aplikasi tetap stabil.`);
       return;
     }
-    if (!confirm(`Hapus ${item.label}?`)) return;
+
+    if (!item.id) {
+      toast.error("Simbol ini bersifat sistem/fallback dan tidak bisa dihapus dari database.");
+      return;
+    }
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus simbol "${item.label}"? Perubahan ini bersifat permanen.`)) return;
 
     try {
       const endpoint = item.dbType === 'unit' ? '/api/units' : '/api/shifts';
       await api.deleteUnitOrShift(endpoint, item.id);
-      toast.success("Berhasil dihapus");
+      toast.success(`Berhasil menghapus "${item.label}"`);
       if (onRefresh) onRefresh();
     } catch (err: any) {
       toast.error(err.message);

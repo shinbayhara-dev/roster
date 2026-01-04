@@ -43,7 +43,7 @@ router.get('/', authenticateToken, async (req, res) => {
  */
 router.post('/', [
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'supervisor'),
     body('code').notEmpty().withMessage('Kode unit wajib diisi'),
     body('name').notEmpty().withMessage('Nama unit wajib diisi')
 ], async (req, res) => {
@@ -86,7 +86,7 @@ router.post('/', [
  */
 router.put('/:id', [
     authenticateToken,
-    authorizeRoles('admin')
+    authorizeRoles('admin', 'supervisor')
 ], async (req, res) => {
     try {
         const { id } = req.params;
@@ -129,7 +129,7 @@ router.put('/:id', [
  */
 router.delete('/:id', [
     authenticateToken,
-    authorizeRoles('admin')
+    authorizeRoles('admin', 'supervisor')
 ], async (req, res) => {
     try {
         const { id } = req.params;

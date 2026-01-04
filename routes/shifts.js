@@ -43,7 +43,7 @@ router.get('/', authenticateToken, async (req, res) => {
  */
 router.post('/', [
     authenticateToken,
-    authorizeRoles('admin'),
+    authorizeRoles('admin', 'supervisor'),
     body('name').notEmpty().withMessage('Nama shift wajib diisi'),
     body('code').notEmpty().withMessage('Kode shift wajib diisi'),
     body('startTime').notEmpty().withMessage('Waktu mulai wajib diisi'),
@@ -88,7 +88,7 @@ router.post('/', [
  */
 router.put('/:id', [
     authenticateToken,
-    authorizeRoles('admin')
+    authorizeRoles('admin', 'supervisor')
 ], async (req, res) => {
     try {
         const { id } = req.params;
@@ -133,7 +133,7 @@ router.put('/:id', [
  */
 router.delete('/:id', [
     authenticateToken,
-    authorizeRoles('admin')
+    authorizeRoles('admin', 'supervisor')
 ], async (req, res) => {
     try {
         const { id } = req.params;

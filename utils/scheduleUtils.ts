@@ -51,10 +51,12 @@ export const BACKEND_CODE_MAP: Record<string, string> = {
 };
 
 
+
 /**
  * Calculates duration in hours between two time strings (HH:mm or HH:mm:ss)
  * Handles overnight shifts (e.g., 21:00 to 07:00)
  * SPECIAL RULE: Pagi shift on Sat/Sun is always 07:30 - 14:30 (7 hours)
+ * STANDARD BREAK: Subtracts 1 hour (60m) if shift duration >= 5 hours
  */
 export const calculateShiftHours = (startTime?: string, endTime?: string, shiftCode?: string, dateStr?: string): number => {
   if (!startTime || !endTime) return 0;
@@ -86,5 +88,13 @@ export const calculateShiftHours = (startTime?: string, endTime?: string, shiftC
     endMinutes += 24 * 60;
   }
 
-  return (endMinutes - startMinutes) / 60;
+  let durationMinutes = endMinutes - startMinutes;
+
+  // STANDARD BREAK LOGIC: 
+  // If shift is 5 hours (300m) or more, subtract 1 hour (60m) break time
+  if (durationMinutes >= 300) {
+    durationMinutes -= 60;
+  }
+
+  return Math.max(0, durationMinutes / 60);
 };

@@ -186,7 +186,8 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {primaryShifts.map((s) => {
-              const dyn = masterShifts.find(ms => normalizeCode(ms.code) === normalizeCode(s.code));
+              // Proper lookup: check by ID first (most accurate), then by mapped code
+              const dyn = masterShifts.find(ms => (s.id && ms.id === s.id) || normalizeCode(ms.code) === normalizeCode(s.code) || normalizeCode(ms.code) === BACKEND_CODE_MAP[normalizeCode(s.code)]);
               const style = dyn ? { backgroundColor: dyn.color, color: getContrastYIQ(dyn.color), borderColor: dyn.color } : undefined;
 
               return (
@@ -194,7 +195,6 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
                   key={s.code}
                   onClick={() => {
                     const newShift = s.code === selectedShift ? null : s.code;
-                    setSelectedShift(newShift);
                     // Auto-clear task if shift is leave/off
                     if (s.category === 'leave') {
                       setSelectedTask(null);
@@ -246,7 +246,7 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
 
           <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-1">
             {taskShifts.map((s) => {
-              const dyn = masterUnits.find(mu => normalizeCode(mu.code) === normalizeCode(s.code));
+              const dyn = masterUnits.find(mu => (s.id && mu.id === s.id) || normalizeCode(mu.code) === normalizeCode(s.code));
               const style = dyn ? { backgroundColor: dyn.color, color: getContrastYIQ(dyn.color), borderColor: dyn.color } : undefined;
 
               return (

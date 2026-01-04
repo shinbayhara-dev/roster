@@ -50,15 +50,33 @@ export const BACKEND_CODE_MAP: Record<string, string> = {
   'LB': 'OFF'
 };
 
+
 /**
  * Calculates duration in hours between two time strings (HH:mm or HH:mm:ss)
  * Handles overnight shifts (e.g., 21:00 to 07:00)
+ * SPECIAL RULE: Pagi shift on Sat/Sun is always 07:30 - 14:30 (7 hours)
  */
-export const calculateShiftHours = (startTime?: string, endTime?: string): number => {
+export const calculateShiftHours = (startTime?: string, endTime?: string, shiftCode?: string, dateStr?: string): number => {
   if (!startTime || !endTime) return 0;
 
-  const [startH, startM] = startTime.split(':').map(Number);
-  const [endH, endM] = endTime.split(':').map(Number);
+  let sTime = startTime;
+  let eTime = endTime;
+
+  // Apply special weekend rule for Morning Shift
+  if (dateStr && shiftCode) {
+    const nCode = normalizeCode(shiftCode);
+    if (nCode === 'P' || nCode === 'PAGI') {
+      const date = new Date(dateStr);
+      const dayOfWeek = date.getDay(); // 0 = Sun, 6 = Sat
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        sTime = '07:30';
+        eTime = '14:30';
+      }
+    }
+  }
+
+  const [startH, startM] = sTime.split(':').map(Number);
+  const [endH, endM] = eTime.split(':').map(Number);
 
   let startMinutes = startH * 60 + startM;
   let endMinutes = endH * 60 + endM;

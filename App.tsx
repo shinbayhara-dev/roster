@@ -90,12 +90,13 @@ const App = () => {
 
     // Calculate Monthly Total Hours
     let totalHoursMonth = 0;
+
     roster.records.forEach(r => {
       const nShiftCode = normalizeCode(r.shiftCode);
       const bCode = BACKEND_CODE_MAP[nShiftCode] || nShiftCode;
       const shiftData = masterShifts.find(s => normalizeCode(s.code) === nShiftCode || normalizeCode(s.code) === bCode);
       if (shiftData) {
-        totalHoursMonth += calculateShiftHours(shiftData.start_time, shiftData.end_time);
+        totalHoursMonth += calculateShiftHours(shiftData.start_time, shiftData.end_time, r.shiftCode, r.date);
       }
     });
 

@@ -42,10 +42,11 @@ export const IndividualView: React.FC<IndividualViewProps> = ({
       const nShiftCode = normalizeCode(r.shiftCode);
       const bCode = BACKEND_CODE_MAP[nShiftCode] || nShiftCode;
 
+
       // Calculate hours
       const shiftData = masterShifts.find(s => normalizeCode(s.code) === nShiftCode || normalizeCode(s.code) === bCode);
       if (shiftData) {
-        counts.totalHours += calculateShiftHours(shiftData.start_time, shiftData.end_time);
+        counts.totalHours += calculateShiftHours(shiftData.start_time, shiftData.end_time, r.shiftCode, r.date);
       }
 
 

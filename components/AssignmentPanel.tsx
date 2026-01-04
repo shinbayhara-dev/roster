@@ -1,19 +1,24 @@
 
 import React, { useState, useMemo } from 'react';
 import { X, Search, Check, Trash2, Clock, Briefcase, Calendar } from 'lucide-react';
+
 import { ShiftType, ShiftDefinition, Employee } from '../types';
 import { SHIFT_DEFINITIONS } from '../constants';
 import { ShiftBadge } from './ShiftBadge';
+import { normalizeCode, getContrastYIQ } from '../utils/scheduleUtils';
+
 
 interface AssignmentPanelProps {
   employee: Employee;
   initialDate: string; // YYYY-MM-DD
-  initialShift?: ShiftType;
-  initialTask?: ShiftType;
+  initialShift?: string;
+  initialTask?: string;
+  masterShifts?: any[];
+  masterUnits?: any[];
   onSave: (date: string, shiftCode: string | null, taskCode: string | null) => void;
   onDelete?: () => void;
   onClose: () => void;
-  isNew?: boolean; // To allow date editing if it's a new entry
+  isNew?: boolean;
 }
 
 export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
@@ -21,40 +26,62 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
   initialDate,
   initialShift,
   initialTask,
+  masterShifts = [],
+  masterUnits = [],
   onSave,
   onDelete,
   onClose,
   isNew = false
 }) => {
-  console.log('AssignmentPanel Render:', { initialDate, isNew });
   const [date, setDate] = useState(initialDate);
   const [selectedShift, setSelectedShift] = useState<string | null>(initialShift || null);
   const [selectedTask, setSelectedTask] = useState<string | null>(initialTask || null);
   const [search, setSearch] = useState('');
 
-  // Sync state with props when they change (e.g. opening modal for different cell)
-  React.useEffect(() => {
-    setDate(initialDate);
-  }, [initialDate]);
+  // Combine static and dynamic shifts
+  const primaryShifts = useMemo(() => {
+    // Start with static ones (though many were removed)
+    const staticItems = Object.values(SHIFT_DEFINITIONS).filter(d => d.category === 'primary' || d.category === 'leave');
 
-  React.useEffect(() => {
-    setSelectedShift(initialShift || null);
-  }, [initialShift]);
+    // Map dynamic masterShifts
+    const dynamicItems = masterShifts.map(s => ({
+      code: s.code,
+      label: s.name,
+      category: (s.code === 'OFF' || s.code === 'CUTI' || s.name.toUpperCase().includes('LIBUR')) ? 'leave' : 'primary'
+    }));
 
-  React.useEffect(() => {
-    setSelectedTask(initialTask || null);
-  }, [initialTask]);
+    // Merge and remove duplicates (prefer dynamic)
+    const combined = [...staticItems];
+    dynamicItems.forEach(d => {
+      if (!combined.some(c => c.code === d.code)) {
+        combined.push(d as any);
+      }
+    });
 
-  const primaryShifts = useMemo(() =>
-    Object.values(SHIFT_DEFINITIONS).filter(d => d.category === 'primary' || d.category === 'leave'),
-    []);
+    return combined;
+  }, [masterShifts]);
 
-  const taskShifts = useMemo(() =>
-    Object.values(SHIFT_DEFINITIONS).filter(d =>
-      d.category === 'task' &&
-      (d.label.toLowerCase().includes(search.toLowerCase()) || d.code.toLowerCase().includes(search.toLowerCase()))
-    ),
-    [search]);
+  // Combine static and dynamic tasks
+  const taskShifts = useMemo(() => {
+    const staticItems = Object.values(SHIFT_DEFINITIONS).filter(d => d.category === 'task');
+    const dynamicItems = masterUnits.map(u => ({
+      code: u.code,
+      label: u.name,
+      category: 'task'
+    }));
+
+    const combined = [...staticItems];
+    dynamicItems.forEach(d => {
+      if (!combined.some(c => c.code === d.code)) {
+        combined.push(d as any);
+      }
+    });
+
+    return combined.filter(d =>
+      d.label.toLowerCase().includes(search.toLowerCase()) ||
+      d.code.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [masterUnits, search]);
 
   const isLeaveSelected = selectedShift ? SHIFT_DEFINITIONS[selectedShift]?.category === 'leave' : false;
 
@@ -113,6 +140,7 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
           />
         </section>
 
+
         {/* Section 1: Primary Shifts */}
         <section>
           <div className="flex items-center justify-between mb-3">
@@ -122,36 +150,41 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
             </h5>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {primaryShifts.map((s) => (
-              <button
-                key={s.code}
-                onClick={() => {
-                  const newShift = s.code === selectedShift ? null : s.code;
-                  setSelectedShift(newShift);
-                  // Auto-clear task if shift is leave/off
-                  if (s.category === 'leave') {
-                    setSelectedTask(null);
-                  }
-                }}
-                className={`
-                  relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center
-                  ${selectedShift === s.code
-                    ? 'border-indigo-600 bg-indigo-50/50 shadow-md ring-1 ring-indigo-600'
-                    : 'border-gray-100 bg-white hover:border-indigo-200 hover:bg-gray-50'
-                  }
-                `}
-              >
-                {selectedShift === s.code && (
-                  <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center text-white animate-in zoom-in duration-200">
-                    <Check size={10} strokeWidth={4} />
-                  </div>
-                )}
-                <ShiftBadge code={s.code} className="w-8 h-8 rounded-lg pointer-events-none" />
-                <span className={`text-[10px] font-bold leading-tight ${selectedShift === s.code ? 'text-indigo-700' : 'text-gray-600'}`}>
-                  {s.label}
-                </span>
-              </button>
-            ))}
+            {primaryShifts.map((s) => {
+              const dyn = masterShifts.find(ms => normalizeCode(ms.code) === normalizeCode(s.code));
+              const style = dyn ? { backgroundColor: dyn.color, color: getContrastYIQ(dyn.color), borderColor: dyn.color } : undefined;
+
+              return (
+                <button
+                  key={s.code}
+                  onClick={() => {
+                    const newShift = s.code === selectedShift ? null : s.code;
+                    setSelectedShift(newShift);
+                    // Auto-clear task if shift is leave/off
+                    if (s.category === 'leave') {
+                      setSelectedTask(null);
+                    }
+                  }}
+                  className={`
+                    relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all text-center
+                    ${selectedShift === s.code
+                      ? 'border-indigo-600 bg-indigo-50/50 shadow-md ring-1 ring-indigo-600'
+                      : 'border-gray-100 bg-white hover:border-indigo-200 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  {selectedShift === s.code && (
+                    <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center text-white animate-in zoom-in duration-200">
+                      <Check size={10} strokeWidth={4} />
+                    </div>
+                  )}
+                  <ShiftBadge code={s.code as any} customStyle={style} className="w-8 h-8 rounded-lg pointer-events-none" />
+                  <span className={`text-[10px] font-bold leading-tight ${selectedShift === s.code ? 'text-indigo-700' : 'text-gray-600'}`}>
+                    {s.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -177,38 +210,43 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
           </div>
 
           <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-1">
-            {taskShifts.map((s) => (
-              <button
-                key={s.code}
-                onClick={() => setSelectedTask(s.code === selectedTask ? null : s.code)}
-                disabled={isLeaveSelected}
-                className={`
-                    flex items-center justify-between p-3 rounded-xl border transition-all
-                    ${selectedTask === s.code
-                    ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600'
-                    : 'border-gray-50 bg-white hover:border-indigo-100 hover:bg-slate-50'
-                  }
-                    ${isLeaveSelected ? 'opacity-40 cursor-not-allowed grayscale' : ''}
-                  `}
-              >
-                <div className="flex items-center gap-3">
-                  <ShiftBadge code={s.code} className="w-8 h-8 rounded-lg pointer-events-none shadow-sm" />
-                  <div className="text-left">
-                    <p className={`text-xs font-bold leading-none mb-1 ${selectedTask === s.code ? 'text-indigo-700' : 'text-gray-900'}`}>
-                      {s.label}
-                    </p>
-                    <p className="text-[9px] text-gray-400 font-mono">CODE: {s.code}</p>
+            {taskShifts.map((s) => {
+              const dyn = masterUnits.find(mu => normalizeCode(mu.code) === normalizeCode(s.code));
+              const style = dyn ? { backgroundColor: dyn.color, color: getContrastYIQ(dyn.color), borderColor: dyn.color } : undefined;
+
+              return (
+                <button
+                  key={s.code}
+                  onClick={() => setSelectedTask(s.code === selectedTask ? null : s.code)}
+                  disabled={isLeaveSelected}
+                  className={`
+                      flex items-center justify-between p-3 rounded-xl border transition-all
+                      ${selectedTask === s.code
+                      ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600'
+                      : 'border-gray-50 bg-white hover:border-indigo-100 hover:bg-slate-50'
+                    }
+                      ${isLeaveSelected ? 'opacity-40 cursor-not-allowed grayscale' : ''}
+                    `}
+                >
+                  <div className="flex items-center gap-3">
+                    <ShiftBadge code={s.code as any} customStyle={style} className="w-8 h-8 rounded-lg pointer-events-none shadow-sm" />
+                    <div className="text-left">
+                      <p className={`text-xs font-bold leading-none mb-1 ${selectedTask === s.code ? 'text-indigo-700' : 'text-gray-900'}`}>
+                        {s.label}
+                      </p>
+                      <p className="text-[9px] text-gray-400 font-mono">CODE: {s.code}</p>
+                    </div>
                   </div>
-                </div>
-                {selectedTask === s.code ? (
-                  <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-sm">
-                    <Check size={14} strokeWidth={3} />
-                  </div>
-                ) : (
-                  <div className="w-6 h-6 border border-gray-100 rounded-full" />
-                )}
-              </button>
-            ))}
+                  {selectedTask === s.code ? (
+                    <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-sm">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 border border-gray-100 rounded-full" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </section>
       </div>

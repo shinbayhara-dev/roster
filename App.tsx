@@ -307,12 +307,15 @@ const App = () => {
       {/* Edit/Swap Modal */}
       <Modal isOpen={!!editingCell} onClose={() => setEditingCell(null)}>
         {editingCell && editingCell.mode === 'edit' && (
+
           <AssignmentPanel
             key={`${editingCell.empId}-${editingCell.date}`} // FORCE RE-MOUNT ON CHANGE
             employee={editingCell.employee}
             initialDate={editingCell.date}
             initialShift={getRecordForCell(editingCell.empId, editingCell.date)?.shiftCode}
             initialTask={getRecordForCell(editingCell.empId, editingCell.date)?.taskCode}
+            masterShifts={masterShifts}
+            masterUnits={masterUnits}
             onSave={(date, shiftCode, taskCode) => handleUpdateShiftV2(date, shiftCode, taskCode)}
             onDelete={() => deleteScheduleRecord(editingCell.empId, editingCell.date)}
             isNew={!getRecordForCell(editingCell.empId, editingCell.date)}

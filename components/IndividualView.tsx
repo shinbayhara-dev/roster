@@ -16,7 +16,8 @@ interface IndividualViewProps {
   masterUnits?: any[];
 }
 
-import { calculateShiftHours, normalizeCode, BACKEND_CODE_MAP } from '../utils/scheduleUtils';
+
+import { calculateShiftHours, normalizeCode, BACKEND_CODE_MAP, getContrastYIQ } from '../utils/scheduleUtils';
 
 export const IndividualView: React.FC<IndividualViewProps> = ({
   selectedEmployee,
@@ -249,17 +250,50 @@ export const IndividualView: React.FC<IndividualViewProps> = ({
                       </span>
                     </div>
 
+
                     <div className="flex flex-col items-center gap-1 lg:gap-2">
-                      {record ? (
-                        <>
-                          <ShiftBadge code={record.shiftCode} className="w-8 h-8 lg:w-12 lg:h-12 text-[10px] lg:text-xs shadow-md shadow-indigo-50 rounded-lg lg:rounded-xl" />
-                          {record.taskCode && (
-                            <div className="text-[7px] lg:text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 lg:px-3 py-1 rounded lg:rounded-lg border border-indigo-100 whitespace-nowrap shadow-sm truncate max-w-full">
-                              {SHIFT_DEFINITIONS[record.taskCode]?.label.substring(0, 15)}
-                            </div>
-                          )}
-                        </>
-                      ) : (
+                      {record ? (() => {
+                        const nShiftCode = normalizeCode(record.shiftCode || '');
+                        const nTaskCode = normalizeCode(record.taskCode || '');
+
+                        // Lookup Shift Info
+                        const dynamicShift = masterShifts.find(s => normalizeCode(s.code) === nShiftCode || normalizeCode(s.code) === BACKEND_CODE_MAP[nShiftCode]);
+                        const shiftColor = dynamicShift?.color || (SHIFT_DEFINITIONS[nShiftCode as ShiftType]?.color === 'bg-white' ? '#ffffff' : SHIFT_DEFINITIONS[nShiftCode as ShiftType]?.color === 'bg-blue-100' ? '#dbeafe' : SHIFT_DEFINITIONS[nShiftCode as ShiftType]?.color === 'bg-indigo-600' ? '#4f46e5' : SHIFT_DEFINITIONS[nShiftCode as ShiftType]?.color === 'bg-red-600' ? '#dc2626' : SHIFT_DEFINITIONS[nShiftCode as ShiftType]?.color === 'bg-yellow-300' ? '#fde047' : '#ffffff');
+
+                        // Lookup Task Info
+                        const dynamicUnit = masterUnits.find(u => normalizeCode(u.code) === nTaskCode);
+                        const taskColor = dynamicUnit?.color;
+
+                        let badgeStyle: React.CSSProperties = {};
+                        let displayCode = record.taskCode || record.shiftCode;
+                        let textColor = '';
+
+                        if (taskColor && shiftColor && nTaskCode && nShiftCode) {
+                          badgeStyle = { background: `linear-gradient(135deg, ${shiftColor} 50%, ${taskColor} 50%)` };
+                          textColor = getContrastYIQ(taskColor);
+                        } else if (taskColor) {
+                          badgeStyle = { backgroundColor: taskColor };
+                          textColor = getContrastYIQ(taskColor);
+                        } else if (shiftColor) {
+                          badgeStyle = { backgroundColor: shiftColor };
+                          textColor = getContrastYIQ(shiftColor);
+                        }
+
+                        return (
+                          <>
+                            <ShiftBadge
+                              code={displayCode as ShiftType}
+                              className={`w-8 h-8 lg:w-12 lg:h-12 text-[10px] lg:text-xs shadow-md rounded-lg lg:rounded-xl ${!badgeStyle.backgroundColor && !badgeStyle.background ? 'shadow-indigo-50' : ''}`}
+                              customStyle={{ ...badgeStyle, color: textColor }}
+                            />
+                            {record.taskCode && (
+                              <div className="text-[7px] lg:text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 lg:px-3 py-1 rounded lg:rounded-lg border border-indigo-100 whitespace-nowrap shadow-sm truncate max-w-full">
+                                {(dynamicUnit?.name || SHIFT_DEFINITIONS[record.taskCode as ShiftType]?.label || record.taskCode).substring(0, 15)}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })() : (
                         <div className="w-8 h-8 lg:w-12 lg:h-12 border-2 border-dashed border-gray-100 rounded-lg lg:rounded-2xl opacity-50" />
                       )}
                     </div>

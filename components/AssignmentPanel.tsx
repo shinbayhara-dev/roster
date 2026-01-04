@@ -5,7 +5,8 @@ import { X, Search, Check, Trash2, Clock, Briefcase, Calendar } from 'lucide-rea
 import { ShiftType, ShiftDefinition, Employee } from '../types';
 import { SHIFT_DEFINITIONS } from '../constants';
 import { ShiftBadge } from './ShiftBadge';
-import { normalizeCode, getContrastYIQ } from '../utils/scheduleUtils';
+
+import { normalizeCode, getContrastYIQ, BACKEND_CODE_MAP } from '../utils/scheduleUtils';
 
 
 interface AssignmentPanelProps {
@@ -38,52 +39,86 @@ export const AssignmentPanel: React.FC<AssignmentPanelProps> = ({
   const [selectedTask, setSelectedTask] = useState<string | null>(initialTask || null);
   const [search, setSearch] = useState('');
 
-  // Combine static and dynamic shifts
+  // Combine static and dynamic shifts without duplicates
   const primaryShifts = useMemo(() => {
-    // Start with static ones (though many were removed)
     const staticItems = Object.values(SHIFT_DEFINITIONS).filter(d => d.category === 'primary' || d.category === 'leave');
+    const usedDbIds = new Set<number>();
 
-    // Map dynamic masterShifts
-    const dynamicItems = masterShifts.map(s => ({
-      code: s.code,
-      label: s.name,
-      category: (s.code === 'OFF' || s.code === 'CUTI' || s.name.toUpperCase().includes('LIBUR')) ? 'leave' : 'primary'
-    }));
+    // 1. Enrich static items with DB data if matches exist
+    const enriched = staticItems.map(d => {
+      const code = normalizeCode(d.code);
+      const bCode = BACKEND_CODE_MAP[code] || code;
 
-    // Merge and remove duplicates (prefer dynamic)
-    const combined = [...staticItems];
-    dynamicItems.forEach(d => {
-      if (!combined.some(c => c.code === d.code)) {
-        combined.push(d as any);
+      const match = masterShifts.find(s =>
+        normalizeCode(s.code) === code ||
+        normalizeCode(s.code) === bCode ||
+        normalizeCode(s.name) === normalizeCode(d.label)
+      );
+
+      if (match) {
+        usedDbIds.add(match.id);
+        return {
+          ...d,
+          id: match.id,
+          label: match.name || d.label,
+          isFromDB: true
+        };
+      }
+      return d;
+    });
+
+    // 2. Add remaining DB shifts that didn't match any static item
+    masterShifts.forEach(s => {
+      if (!usedDbIds.has(s.id)) {
+        const isLeave = normalizeCode(s.code) === 'OFF' || normalizeCode(s.code) === 'CUTI' || s.name.toUpperCase().includes('LIBUR') || s.name.toUpperCase().includes('CUTI');
+        enriched.push({
+          id: s.id,
+          code: s.code,
+          label: s.name,
+          category: isLeave ? 'leave' : 'primary',
+          isFromDB: true
+        } as any);
       }
     });
 
-    return combined;
+    return enriched;
   }, [masterShifts]);
 
-  // Combine static and dynamic tasks
+  // Combine static and dynamic tasks without duplicates
   const taskShifts = useMemo(() => {
     const staticItems = Object.values(SHIFT_DEFINITIONS).filter(d => d.category === 'task');
-    const dynamicItems = masterUnits.map(u => ({
-      code: u.code,
-      label: u.name,
-      category: 'task'
-    }));
+    const usedDbIds = new Set<number>();
 
-    const combined = [...staticItems];
-    dynamicItems.forEach(d => {
-      if (!combined.some(c => c.code === d.code)) {
-        combined.push(d as any);
+    const enriched = staticItems.map(d => {
+      const code = normalizeCode(d.code);
+      const match = masterUnits.find(u => normalizeCode(u.code) === code || normalizeCode(u.name) === normalizeCode(d.label));
+
+      if (match) {
+        usedDbIds.add(match.id);
+        return { ...d, id: match.id, label: match.name || d.label, isFromDB: true };
+      }
+      return d;
+    });
+
+    masterUnits.forEach(u => {
+      if (!usedDbIds.has(u.id)) {
+        enriched.push({
+          id: u.id,
+          code: u.code,
+          label: u.name,
+          category: 'task',
+          isFromDB: true
+        } as any);
       }
     });
 
-    return combined.filter(d =>
+    return enriched.filter(d =>
       d.label.toLowerCase().includes(search.toLowerCase()) ||
       d.code.toLowerCase().includes(search.toLowerCase())
     );
   }, [masterUnits, search]);
 
-  const isLeaveSelected = selectedShift ? SHIFT_DEFINITIONS[selectedShift]?.category === 'leave' : false;
+  const isLeaveSelected = selectedShift ? primaryShifts.find(s => s.code === selectedShift)?.category === 'leave' : false;
 
   const handleSave = () => {
     onSave(date, selectedShift, selectedTask);
